@@ -62,14 +62,26 @@ jobs:
         run: |
           $unity = "${{ steps.unity.outputs.UNITY_PATH }}"
           $project = "${{ github.workspace }}"
-          $log = Join-Path $env:RUNNER_TEMP "unity-compile.log"
+          $log = Join-Path $env:GITHUB_WORKSPACE "_ci_build.log"
           Write-Host "以无头模式打开工程，校验脚本编译与资源导入（不产出 exe，省内存）..."
           & $unity -batchmode -quit -nographics -projectPath $project -logFile $log
           $code = $LASTEXITCODE
           Write-Host "---- Unity 日志尾部 ----"
-          Get-Content $log -Tail 40
-          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志。" }
+          Get-Content $log -Tail 60
+          Write-Host "---- Unity 日志中的 error/failed 行 ----"
+          Select-String -Path $log -Pattern "error|failed|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 40
+          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志；完整日志已上传为 Artifact: unity-build-log。" }
           Write-Host "✅ 编译/导入校验通过（工程可正常打开且无编译错误）。"
+
+      # 4) 上传完整构建日志（即使前面失败也上传，便于排查真凶）
+      #    下载方式：GitHub 仓库 → Actions → 对应 run → Artifacts → unity-build-log
+      - name: Upload build log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-build-log
+          path: _ci_build.log
+          if-no-files-found: warn
 
       # 说明：基础阶段用「轻量编译校验」保证 CI 常绿且不爆 8GB 内存。
       # 后续升级到出 exe + FPS 冒烟时，将第 3 步替换为：

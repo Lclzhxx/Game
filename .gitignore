@@ -37,3 +37,5 @@ _create.log
 _resolve.log
 _resolve2.log
 _build.log
+_ci_build.log
+_ci_repro.log

@@ -1,0 +1,39 @@
+# =============================================================
+# .gitignore — 《秘境·凡尘》Unity 工程（2022.3.62 / URP 14.0.12）
+# 仅忽略本地生成物与 IDE 缓存；源码、Packages/manifest.json、
+# Packages/packages-lock.json、ProjectSettings、Assets 全部入库。
+# =============================================================
+
+# --- Unity 本地生成物 ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+
+# 本地试玩构建产物（CI 也产出到 build/，不入库）
+/build/
+
+# --- IDE / 编辑器缓存 ---
+.vs/
+.idea/
+*.csproj
+*.sln
+*.sln.meta
+*.userprefs
+*.unityproj
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# --- 本地临时日志（不在工程内提交） ---
+_create.log
+_resolve.log
+_resolve2.log
+_build.log

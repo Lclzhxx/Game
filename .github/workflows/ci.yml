@@ -1,0 +1,78 @@
+# =============================================================
+# 文件名：ci.yml
+# 用途：GitHub Actions 自动构建 + 冒烟门禁（自托管 runner）
+# 来源：裁剪自 production/ci/ci-workflow-template.yml
+# 设计要点（针对制作人本机 8GB 内存构建机）：
+#   1) runs-on: self-hosted —— 跑在制作人本机，零云端分钟费（ADR-004）。
+#   2) 无头构建：-batchmode -nographics（GPU 为 950M 无关紧要，无头不渲染）。
+#   3) 内存补偿：构建机物理内存仅 8GB，请务必把 Windows【页面文件(虚拟内存)】
+#      设在 D 盘并放大到 16–24GB（设置→系统→关于→高级系统设置→性能→高级→虚拟内存），
+#      否则 Unity 导入/Library 阶段极易 OOM 被 kill。这是 8GB 机器唯一真风险。
+#   4) 避免并行过重：单 job、单 Unity 实例、不并行构建多平台；超时给足（45min）。
+#   5) 版本钉死：unityVersion 锁定 2022.3.62 补丁族（f1/f3c1 API 等价），
+#      URP 由仓库 manifest.json 钉 14.0.12，杜绝版本漂移（R1/R10）。
+# 注：本文件为 S1 骨架；"墨韵回归 + 帧率≥58 冒烟"门禁在 E1-S1 交付后接实，
+#     当前为占位（exit 0），CI 不会因此误报绿——接实前请勿视为 G3 已满足。
+# =============================================================
+
+name: Build & Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    # 自托管 runner（制作人本机），避免云端拉到非 2022.3 的 Unity
+    runs-on: self-hosted
+
+    steps:
+      # 1) 拉取代码（含 LFS 大资产）
+      - name: Checkout (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # 2) 用【固定版本】Unity 2022.3 无头构建
+      #    unityVersion 钉 2022.3.62 补丁族。制作人本机实际装的是中国区
+      #    2022.3.62f3c1（API 等价 f1）。若 game-ci 在本机找不到 2022.3.62f1，
+      #    任选其一：a) 把编辑器装到标准 Hub 路径；b) 把下面改成 2022.3.62f3c1；
+      #    c) 在 runner 上设置 UNITY_PATH 指向 D:/Unity/2022.3.62f3c1/Editor/Unity.exe。
+      - name: Build with GameCI (headless, -nographics)
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          unityVersion: 2022.3.62f1
+          targetPlatform: StandaloneWindows64
+          buildMethod: UnityBuilderAction.BuildPlayer.Default
+          # 无头、避免 GUI/弹窗；nographics 让 950M 显卡无关
+          androidAppBundle: false
+        timeout-minutes: 45
+
+      # 3) 门禁①：墨韵（Ink）回归（E1-S1 接实，当前占位）
+      #    TODO(E1-S1)：用 Unity Test Framework 跑 Assets/Tests 下回归套件，
+      #    断言：截图与基线一致 + Ink Pass 耗时 < 3ms + 参数越界被 clamp 无 NaN。
+      #    接实后此步失败必须使 CI 变红。
+      - name: Ink Regression Gate (placeholder — wire in E1-S1)
+        run: |
+          echo "TODO(E1-S1): run Unity -runTests with Assets/Tests/Ink*Regression"
+          echo "Expected when wired: 'Ink 回归 PASS'"
+
+      # 4) 门禁②：帧率冒烟 H2（FPS >= 58，1080p60）
+      #    TODO(E1-S1 / playtest)：启动 build/game-build 可执行，读 FpsProbe 探针，
+      #    断言平均 FPS >= 58；失败必须使 CI 变红。
+      - name: Frame-rate Smoke Gate (H2, placeholder — wire in E1-S1)
+        run: |
+          echo "TODO(E1-S1): launch build, assert FPS >= 58 (H2)"
+          echo "Expected when wired: 'FPS >= 58 (H2)'"
+
+      # 5) 上传构建产物，方便制作人直接下载试玩
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-build
+          path: build/
+          retention-days: 14

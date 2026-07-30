@@ -1,0 +1,56 @@
+# =============================================================
+# .gitattributes — Git LFS 规则（《秘境·凡尘》生产工程）
+# 规则：所有"大二进制资产"（贴图 / 模型 / 音频）一律走 LFS，
+#       保证仓库本体轻量、clone 快、diff 友好。
+# 文本类（.cs/.shader/.meta/.json/.asset/.unity/.md/.yml/.gitattributes）
+# 不进 LFS，按普通文本管理（含 CRLF/LF 归一）。
+# 详见 ADR-004（VCS + LFS 策略）。
+# =============================================================
+
+# --- 贴图 / 纹理 ---
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*.tiff filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.astc filter=lfs diff=lfs merge=lfs -text
+*.ktx filter=lfs diff=lfs merge=lfs -text
+*.dds filter=lfs diff=lfs merge=lfs -text
+
+# --- 模型 / 网格 ---
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.obj filter=lfs diff=lfs merge=lfs -text
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.mesh filter=lfs diff=lfs merge=lfs -text
+*.gltf filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+
+# --- 音频 ---
+*.wav filter=lfs diff=lfs merge=lfs -text
+*.mp3 filter=lfs diff=lfs merge=lfs -text
+*.ogg filter=lfs diff=lfs merge=lfs -text
+*.aiff filter=lfs diff=lfs merge=lfs -text
+*.flac filter=lfs diff=lfs merge=lfs -text
+
+# --- 视频（如有过场） ---
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.mov filter=lfs diff=lfs merge=lfs -text
+
+# --- 仓库根 .gitattributes 自身始终为文本 ---
+.gitattributes text
+
+# --- 其它统一按文本、行尾归一（防止 Windows/Linux 混用造成噪声 diff） ---
+*.cs text eol=lf
+*.shader text eol=lf
+*.compute text eol=lf
+*.hlsl text eol=lf
+*.cginc text eol=lf
+*.json text eol=lf
+*.asset text eol=lf
+*.meta text eol=lf
+*.unity text eol=lf
+*.md text eol=lf
+*.yml text eol=lf

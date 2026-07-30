@@ -42,7 +42,7 @@ jobs:
       # 2) 定位本机 Unity 编辑器（不依赖版本匹配，直接调已安装的 Unity）
       - name: Locate Unity Editor
         id: unity
-        shell: pwsh
+        shell: powershell
         run: |
           $paths = @("D:\Unity\2022.3.62f3c1\Editor\Unity.exe")
           # 兜底：扫描 D:\Unity 下任意 Unity.exe
@@ -56,7 +56,7 @@ jobs:
       # 3) 编译与导入校验（轻量，8GB 安全）
       #    无头打开工程：导入资源 + 编译 C# 脚本 + 退出。退出码 0 = 工程可正常编译。
       - name: Compile & Import Validation (lightweight, 8GB-safe)
-        shell: pwsh
+        shell: powershell
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         run: |

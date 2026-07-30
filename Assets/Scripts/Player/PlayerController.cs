@@ -32,6 +32,7 @@ public class PlayerController : MonoBehaviour
     public bool showDebug = true;
 
     private CharacterController m_CC;
+    private Camera m_Cam;
     private Vector3 m_Velocity;
     private bool m_IsDodging = false;
     private float m_DodgeTimer = 0f;
@@ -45,6 +46,7 @@ public class PlayerController : MonoBehaviour
     void Awake()
     {
         m_CC = GetComponent<CharacterController>();
+        m_Cam = Camera.main;
     }
 
     void Update()
@@ -55,10 +57,17 @@ public class PlayerController : MonoBehaviour
         m_InvincibleTimer = Mathf.Max(0f, m_InvincibleTimer - dt);
         m_AttackCdTimer   = Mathf.Max(0f, m_AttackCdTimer - dt);
 
-        // 输入（XZ 平面）
+        // 输入（XZ 平面，相机相对：W=远离相机 / S=靠近 / A=屏幕左 / D=屏幕右）
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
-        Vector3 move = new Vector3(h, 0f, v);
+        Transform camT = (m_Cam != null) ? m_Cam.transform : (Camera.main != null ? Camera.main.transform : null);
+        Vector3 forward = Vector3.forward, right = Vector3.right;
+        if (camT != null)
+        {
+            forward = camT.forward; forward.y = 0f; forward.Normalize();
+            right = camT.right; right.y = 0f; right.Normalize();
+        }
+        Vector3 move = (forward * v + right * h);
         if (move.sqrMagnitude > 1f) move.Normalize();
 
         // 触发闪避翻滚

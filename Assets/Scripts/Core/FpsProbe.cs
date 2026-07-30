@@ -33,7 +33,6 @@ public class FpsProbe : MonoBehaviour
     void Start()
     {
         m_TimeLeft = updateInterval;
-        EnsureStyle();
     }
 
     void EnsureStyle()

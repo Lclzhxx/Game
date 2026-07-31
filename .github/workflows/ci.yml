@@ -45,18 +45,23 @@ jobs:
           lfs: true
 
       # 2) 定位本机 Unity 编辑器（不依赖版本匹配，直接调已安装的 Unity）
+      # ⚠️ 铁律（2026-07-31 实测）：run: 脚本体必须 100% 纯 ASCII！
+      #    runner 把 step 脚本写成 UTF-8 无 BOM 的临时 .ps1，Windows PowerShell 5.1
+      #    按 GBK 误读 → 中文/emoji 变乱码 → 破坏引号 → ParseError → 秒退 exit 1
+      #    （此前「Locate Unity Editor」1 秒红、零日志的唯一真因）。
+      #    中文说明只能放 YAML 注释层（# 开头、run 块之外），绝不进 run: |。
       - name: Locate Unity Editor
         id: unity
         shell: powershell
         run: |
           $paths = @("D:\Unity\2022.3.62f3c1\Editor\Unity.exe")
-          # 兜底：扫描 D:\Unity 下任意 Unity.exe
+          # fallback: scan D:\Unity for any Unity.exe
           $glob = Get-ChildItem "D:\Unity" -Recurse -Filter Unity.exe -ErrorAction SilentlyContinue | Select-Object -First 1
           if ($glob) { $paths += $glob.FullName }
           $unity = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $unity) { throw "未找到 Unity.exe，请确认已安装 2022.3.62f3c1，或在 ci.yml 修正路径。" }
+          if (-not $unity) { throw "Unity.exe not found. Install 2022.3.62f3c1 or fix path in ci.yml." }
           echo "UNITY_PATH=$unity" >> $env:GITHUB_OUTPUT
-          Write-Host "Unity 路径: $unity"
+          Write-Host "Unity path: $unity"
 
       # 3) 编译与导入校验（轻量，8GB 安全）
       #    无头打开工程：导入资源 + 编译 C# 脚本 + 退出。退出码 0 = 工程可正常编译。
@@ -64,25 +69,25 @@ jobs:
         shell: powershell
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        # 日志写到工作区之外（D:\ci_last.log），runner 不清理，可直接读盘排障。
+        # 同样遵守「run 块纯 ASCII」铁律。
         run: |
           $unity = "${{ steps.unity.outputs.UNITY_PATH }}"
           $project = "${{ github.workspace }}"
-          # 日志写到工作区之外（D:\ci_last.log），runner 不会在 job 后清理；
-          # 即便 Actions 控制台不便复制，排障时也能直接从磁盘读到完整日志。
           $log = "D:\ci_last.log"
-          Write-Host "以无头模式打开工程，校验脚本编译与资源导入（不产出 exe，省内存）..."
+          Write-Host "Headless open project: validate script compile + asset import (no exe, low memory)..."
           & $unity -batchmode -quit -nographics -projectPath $project -logFile $log
           $code = $LASTEXITCODE
           if (Test-Path $log) {
-            Write-Host "==== Unity 日志：error/failed/exception 行 ===="
+            Write-Host "==== Unity log: error/failed/exception lines ===="
             Select-String -Path $log -Pattern "error|failed|fatal|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 50
-            Write-Host "==== Unity 日志尾部 120 行 ===="
+            Write-Host "==== Unity log tail 120 ===="
             Get-Content $log -Tail 120
           } else {
-            Write-Host "⚠️ Unity 未写出日志文件：$log（可能极早期崩溃，请检查 Unity 路径/许可证）"
+            Write-Host "WARNING: Unity wrote no log file at $log (very early crash; check Unity path / license)."
           }
-          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志。" }
-          Write-Host "✅ 编译/导入校验通过（工程可正常打开且无编译错误）。"
+          if ($code -ne 0) { throw "Unity compile/import FAILED (exit code $code). See log above." }
+          Write-Host "PASS: compile/import validation OK (project opens with no compile errors)."
 
       # 说明：基础阶段用「轻量编译校验」保证 CI 常绿且不爆 8GB 内存。
       # 注意：本 runner 弱网，拉 GitHub Marketplace action 易 100s 超时（upload-artifact

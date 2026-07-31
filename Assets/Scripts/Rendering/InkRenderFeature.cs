@@ -31,6 +31,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using MJ.Rendering;
 
 #pragma warning disable CS0618 // 压制 ScriptableRenderer.cameraColorTarget 在 URP v17 下的 obsolete (CS0618) 警告；2022.3 下本就不触发，纯 no-op，跨版本安全。
 

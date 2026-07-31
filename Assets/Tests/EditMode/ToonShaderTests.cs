@@ -144,14 +144,22 @@ public class ToonShaderTests
 
         foreach (string tag in viaApi)
         {
-            Assert.IsTrue(declared.Contains(tag),
+            // Unity Shader API 在部分环境会规范化 LightMode 名为全大写（源码 ShadowCaster
+            // → API 返回 SHADOWCASTER），按大小写不敏感比对避免把「同义不同写」误判为漂移。
+            bool known = false;
+            foreach (string d in declared)
+                if (string.Equals(d, tag, System.StringComparison.OrdinalIgnoreCase)) { known = true; break; }
+            Assert.IsTrue(known,
                 "Shader API 报告了源码未声明的 LightMode「" + tag + "」——" + ShaderPath +
                 " 与实际编译产物漂移，请核对 pass 结构。源码声明：" + declaredList);
         }
 
         foreach (string expected in new[] { "UniversalForward", "ShadowCaster", "DepthOnly" })
         {
-            if (!viaApi.Contains(expected))
+            bool apiHas = false;
+            foreach (string t in viaApi)
+                if (string.Equals(t, expected, System.StringComparison.OrdinalIgnoreCase)) { apiHas = true; break; }
+            if (!apiHas)
             {
                 Debug.LogWarning("[ToonShaderTests] Shader API 未读到 LightMode=" + expected +
                                  "，但源码 " + ShaderPath + " 已正确声明该 pass。" +

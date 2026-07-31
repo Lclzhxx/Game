@@ -10,7 +10,8 @@
 #   —— 零外部 action 依赖原则（2026-07-30 追加）：本 runner 拉 GitHub Marketplace
 #      action 弱网易超时（game-ci/unity-builder、actions/upload-artifact@v4 均实测 100s
 #      超时×3 失败）。CI 仅保留 actions/checkout@v4（runner 已缓存），其余一律直调
-#      本机程序；构建日志直接打印到 Actions 控制台，不依赖 upload-artifact。
+#      本机程序；构建日志直接打印到 Actions 控制台，并持久化到 D:\ci_last.log
+#      （workspace 外、runner 不清理），排障时可直接读盘，免复制长日志。
 # 设计要点：
 #   1) runs-on: self-hosted —— 跑在制作人本机，零云端分钟费（ADR-004）。
 #   2) 无头编译校验：-batchmode -quit -nographics（GPU 为 950M 无关，无头不渲染）。
@@ -66,15 +67,21 @@ jobs:
         run: |
           $unity = "${{ steps.unity.outputs.UNITY_PATH }}"
           $project = "${{ github.workspace }}"
-          $log = Join-Path $env:GITHUB_WORKSPACE "_ci_build.log"
+          # 日志写到工作区之外（D:\ci_last.log），runner 不会在 job 后清理；
+          # 即便 Actions 控制台不便复制，排障时也能直接从磁盘读到完整日志。
+          $log = "D:\ci_last.log"
           Write-Host "以无头模式打开工程，校验脚本编译与资源导入（不产出 exe，省内存）..."
           & $unity -batchmode -quit -nographics -projectPath $project -logFile $log
           $code = $LASTEXITCODE
-          Write-Host "---- Unity 日志尾部 ----"
-          Get-Content $log -Tail 60
-          Write-Host "---- Unity 日志中的 error/failed 行 ----"
-          Select-String -Path $log -Pattern "error|failed|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 40
-          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志尾部与 error 行。" }
+          if (Test-Path $log) {
+            Write-Host "==== Unity 日志：error/failed/exception 行 ===="
+            Select-String -Path $log -Pattern "error|failed|fatal|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 50
+            Write-Host "==== Unity 日志尾部 120 行 ===="
+            Get-Content $log -Tail 120
+          } else {
+            Write-Host "⚠️ Unity 未写出日志文件：$log（可能极早期崩溃，请检查 Unity 路径/许可证）"
+          }
+          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志。" }
           Write-Host "✅ 编译/导入校验通过（工程可正常打开且无编译错误）。"
 
       # 说明：基础阶段用「轻量编译校验」保证 CI 常绿且不爆 8GB 内存。

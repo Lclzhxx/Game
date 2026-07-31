@@ -7,6 +7,10 @@
 #      内部依赖 Unix `sh`，Windows 自托管 runner 无 `sh` 必崩；且需下载
 #      较大第三方 action，弱网易超时。改为「直接 PowerShell 调本机 Unity」。
 #      Unity 已装在你机器上，自托管 runner 直接调最稳、最省、8GB 也扛得住。
+#   —— 零外部 action 依赖原则（2026-07-30 追加）：本 runner 拉 GitHub Marketplace
+#      action 弱网易超时（game-ci/unity-builder、actions/upload-artifact@v4 均实测 100s
+#      超时×3 失败）。CI 仅保留 actions/checkout@v4（runner 已缓存），其余一律直调
+#      本机程序；构建日志直接打印到 Actions 控制台，不依赖 upload-artifact。
 # 设计要点：
 #   1) runs-on: self-hosted —— 跑在制作人本机，零云端分钟费（ADR-004）。
 #   2) 无头编译校验：-batchmode -quit -nographics（GPU 为 950M 无关，无头不渲染）。
@@ -70,20 +74,12 @@ jobs:
           Get-Content $log -Tail 60
           Write-Host "---- Unity 日志中的 error/failed 行 ----"
           Select-String -Path $log -Pattern "error|failed|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 40
-          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志；完整日志已上传为 Artifact: unity-build-log。" }
+          if ($code -ne 0) { throw "Unity 编译/导入失败（退出码 $code），见上方日志尾部与 error 行。" }
           Write-Host "✅ 编译/导入校验通过（工程可正常打开且无编译错误）。"
 
-      # 4) 上传完整构建日志（即使前面失败也上传，便于排查真凶）
-      #    下载方式：GitHub 仓库 → Actions → 对应 run → Artifacts → unity-build-log
-      - name: Upload build log (always)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: unity-build-log
-          path: _ci_build.log
-          if-no-files-found: warn
-
       # 说明：基础阶段用「轻量编译校验」保证 CI 常绿且不爆 8GB 内存。
+      # 注意：本 runner 弱网，拉 GitHub Marketplace action 易 100s 超时（upload-artifact
+      # 已实测失败），故构建日志直接打印到控制台，绝不依赖 upload-artifact。
       # 后续升级到出 exe + FPS 冒烟时，将第 3 步替换为：
       #   & $unity -batchmode -quit -nographics -projectPath $project `
       #     -buildWindows64Player "$env:RUNNER_TEMP\build\MijingFanchen.exe" -logFile $log

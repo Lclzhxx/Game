@@ -115,6 +115,11 @@ public class GreyboxBuilder : MonoBehaviour
 
         if (cam.GetComponent<FpsProbe>() == null)
             cam.gameObject.AddComponent<FpsProbe>();
+
+        // E2-S2（ADR-009）：Y-Z 透明排序轴，一次性初始化零每帧成本。
+        // 注意顺序：必须在 rig.offset 赋值之后挂载（Awake 里从 offset 推导轴）。
+        if (cam.GetComponent<DepthSortBootstrap>() == null)
+            cam.gameObject.AddComponent<DepthSortBootstrap>();
     }
 
     // ---------------- 工具函数 ----------------

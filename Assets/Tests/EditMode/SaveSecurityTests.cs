@@ -36,6 +36,7 @@ public class SaveSecurityTests
             var psi = new ProcessStartInfo("git", args)
             {
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
@@ -44,6 +45,10 @@ public class SaveSecurityTests
                 if (p == null) return null;
                 stdout = p.StandardOutput.ReadToEnd();
                 p.WaitForExit();
+                // 丢弃 stderr：部分 git 子命令（如 ls-files --error-unmatch 对未跟踪文件）
+                // 会把预期的报错打到 stderr；若不重定向会泄漏到 Unity 控制台，
+                // 被 UnityLogCheckDelegatingCommand 误判为测试失败。
+                var _stderr = p.StandardError.ReadToEnd();
                 return p.ExitCode;
             }
         }

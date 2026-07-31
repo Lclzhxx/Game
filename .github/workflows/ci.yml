@@ -178,6 +178,37 @@ jobs:
           if ($code -ne 0) { throw "Unity compile/import FAILED (exit code $code). See log above." }
           Write-Host "PASS: compile/import validation OK (project opens with no compile errors)."
 
+      # 5) EditMode 测试门控（S2-R7 自检）：-batchmode -quit -nographics -runTests
+      #    跑 EditMode 程序集，产出 JUnit XML（-testResults）。退出码语义：
+      #      0 = 全过 / 2 = 有失败 / 3 = 运行失败（编译/装配错误等）。
+      #    非 0 即判 CI 红（S2-R7 要求门控生效）——故非 0 即 throw。
+      #    ⚠️ run 块 100% 纯 ASCII 铁律（中文只在 # 注释层）。
+      #    ⚠️ 铁律二：必须用 Start-Process -Wait 启动 Unity，绝不能用 `&`。
+      - name: EditMode Tests (self-check gate, S2-R7)
+        shell: powershell
+        run: |
+          $unity = "${{ steps.unity.outputs.UNITY_PATH }}"
+          $project = "${{ github.workspace }}"
+          $testResults = "${{ github.workspace }}\EditMode-results.xml"
+          $log = "D:\ci_editmode.log"
+          if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
+          $argLine = "-batchmode -quit -nographics -projectPath `"$project`" -runTests -testPlatform EditMode -testResults `"$testResults`" -logFile `"$log`""
+          Write-Host "Running EditMode tests (Start-Process -Wait)..."
+          Write-Host "Launching: $unity $argLine"
+          $proc = Start-Process -FilePath $unity -ArgumentList $argLine -PassThru -Wait -NoNewWindow
+          $code = $proc.ExitCode
+          Write-Host "Unity test runner exit code: $code (0=all pass, 2=failures, 3=run error)"
+          if (Test-Path $log) {
+            Write-Host "==== Unity test log: error/failure lines ===="
+            Select-String -Path $log -Pattern "error|failed|exception|test runner|no tests|Failing" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 50
+            Write-Host "==== Unity test log tail 80 ===="
+            Get-Content $log -Tail 80
+          } else {
+            Write-Host "WARNING: Unity wrote no log at $log (very early crash)."
+          }
+          if ($code -ne 0) { throw "EditMode tests FAILED (exit code $code). Gate RED. See log above." }
+          Write-Host "PASS: EditMode tests green (gate self-check OK)."
+
       # 说明：基础阶段用「轻量编译校验」保证 CI 常绿且不爆 8GB 内存。
       # 注意：本 runner 弱网，拉 GitHub Marketplace action 易 100s 超时（upload-artifact
       # 已实测失败），故构建日志直接打印到控制台，绝不依赖 upload-artifact。

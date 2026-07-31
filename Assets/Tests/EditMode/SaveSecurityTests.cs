@@ -113,10 +113,11 @@ public class SaveSecurityTests
         Assert.IsTrue(File.Exists(path), "SaveCrypto.cs 缺失");
         string src = File.ReadAllText(path);
 
-        Assert.IsFalse(src.Contains("AesGcm"),
-            "S2-R8：SaveCrypto 禁止 AesGcm（Unity 2022.3 Mono 支持不稳），须用 AES-CBC + HMAC-SHA256（ADR-007）");
-        Assert.IsFalse(src.Contains("ChaCha20"),
-            "S2-R8：SaveCrypto 禁止 ChaCha20");
+        // 只匹配「真正的实例化/调用」，不匹配裸词：SaveCrypto.cs 文件头注释里写着
+        // 「刻意【不用】AesGcm……」，裸词 Contains 会把这行红线说明也判成违规（假失败）。
+        Assert.IsFalse(src.Contains("new AesGcm") || src.Contains("new ChaCha20")
+                       || src.Contains("AesGcm(") || src.Contains("ChaCha20("),
+            "S2-R8：SaveCrypto 禁止 AesGcm/ChaCha20 实例化（Unity 2022.3 Mono 支持不稳），须用 AES-CBC + HMAC-SHA256（ADR-007）");
 
         // 反向确认确实采用了批准的基元（避免「只是没写 AesGcm」的空断言）。
         Assert.IsTrue(src.Contains("CipherMode.CBC"), "SaveCrypto 应使用 AES-CBC（ADR-007）");

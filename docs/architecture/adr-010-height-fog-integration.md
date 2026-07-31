@@ -1,6 +1,6 @@
 # ADR-010 高度雾与墨韵 Render Feature 的集成点（E1-S3）
 
-> 状态：**提议**
+> 状态：**已采纳（含已批准实现偏差）**
 > 关联：ADR-002（墨韵单 Pass）、C2（严禁多 Pass 叠加）、C5（跨版本单路径）、性能契约§5（Height Fog < 1ms，禁真体积 raymarch；墨韵栈 < 2–3ms）
 > 引擎钉定：Unity 2022.3.62 · URP 14.0.12（URP 14 无内建高度雾，必须自建）
 
@@ -55,16 +55,16 @@
 
 ## 实施记录（E1-S3，S2·W2）
 
-### 与本 ADR 原文的一处偏差 —— 待主理人裁定
+### 与本 ADR 原文的一处偏差 —— 已裁定：接受偏差（制作人批准）
 
 | 项 | ADR 原文 | 实施 | 理由 |
 |---|---|---|---|
 | keyword 声明方式 | `#pragma shader_feature_local _MJ_HEIGHT_FOG` | `#pragma multi_compile_local_fragment _ _MJ_HEIGHT_FOG` | `shader_feature` 的变体入包依据是**材质资产落盘时的 keyword 状态**。本雾的 keyword 由 `InkRenderFeature` 在 **Execute 里运行时** `CoreUtils.SetKeyword` 开关，材质资产上永远是关的 → 构建期 `_MJ_HEIGHT_FOG` 变体会被剥掉，**编辑器里开雾正常、真机出包无效**（典型的"编辑器绿、真机黑"）。`multi_compile` 固定编译 2 个变体，关雾变体与 S1 完全同构，关雾态零成本不变；代价仅是变体数 ×2（本 shader 无其他 multi_compile，绝对量 = 2）。 |
 
-裁定选项：
-1. **接受偏差**（推荐）——按上表改 ADR 正文，成本 0。
-2. **回退 `shader_feature_local`** —— 则必须改为「在墨韵材质资产上落盘 keyword，Feature 只读不写」，
-   意味着开关雾要改材质资产（不能在 Renderer Feature Inspector 上勾），操作手感变差且与「参数集中在 Feature」的既有约定冲突。
+裁定（2026-07-31，S2·W2，制作人批准）：采用 **选项 1（接受偏差）**。
+- 理由：运行时 `CoreUtils.SetKeyword` 开关 keyword，`shader_feature_local` 因材质资产落盘时 keyword 恒为关，会被构建期剥离，诱发「编辑器绿、真机黑」；`multi_compile_local_fragment` 固定编译 2 变体，关雾态零成本，安全。
+- 代价仅是变体数 ×2（本 shader 无其他 multi_compile，绝对量 = 2），可接受。
+- ADR 正文 §决定/Shader 侧 第 26 行的 `shader_feature_local` 以本偏差表为权威修正——实施以 `multi_compile_local_fragment` 为准；本 ADR 视为「已采纳（含已批准实现偏差）」。
 
 ### 实施细节增补
 
@@ -80,3 +80,4 @@
   （去注释后 `GetTemporaryRT`×1 / `cmd.Blit(`×2 / `ReleaseTemporaryRT`×1 / `EnqueuePass(`×1 / `: ScriptableRenderPass`×1），
   任何人日后偷偷加第二条 Pass 会直接红在 CI 上。
 - 回退点：`git tag s1-ink-baseline`（E1-S3 动工前的 S1 已验证墨韵栈）。
+- 本 ADR 于 S2·W2 经制作人批准采纳，含上述已批准的实现偏差（keyword 声明方式偏差，裁定：接受 `multi_compile_local_fragment` 偏差）。采纳状态见文档顶部。

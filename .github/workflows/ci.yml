@@ -71,13 +71,24 @@ jobs:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         # 日志写到工作区之外（D:\ci_last.log），runner 不清理，可直接读盘排障。
         # 同样遵守「run 块纯 ASCII」铁律。
+        # ⚠️ 铁律二（2026-07-31 实测坐实）：必须用 Start-Process -Wait 启动 Unity，
+        #    绝不能用 PowerShell 的 `& $unity ...`！
+        #    实测 Unity.exe 的 PE Subsystem = 2（WINDOWS_GUI），PowerShell 的 `&`
+        #    只对「控制台子系统」程序阻塞等待，对 GUI 子系统程序【立即返回】。
+        #    后果：脚本秒退 → $LASTEXITCODE 取到垃圾值 → throw → step exit 1；
+        #    Unity 才刚启动就被 runner 当残留子进程 kill，日志文件都来不及写。
+        #    这就是 CI「8 秒报红 + D:\ci_last.log 从不生成 + 子进程被 Kill」的唯一真因。
         run: |
           $unity = "${{ steps.unity.outputs.UNITY_PATH }}"
           $project = "${{ github.workspace }}"
           $log = "D:\ci_last.log"
+          if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
+          $argLine = "-batchmode -quit -nographics -projectPath `"$project`" -logFile `"$log`""
           Write-Host "Headless open project: validate script compile + asset import (no exe, low memory)..."
-          & $unity -batchmode -quit -nographics -projectPath $project -logFile $log
-          $code = $LASTEXITCODE
+          Write-Host "Launching (Start-Process -Wait) : $unity $argLine"
+          $proc = Start-Process -FilePath $unity -ArgumentList $argLine -PassThru -Wait -NoNewWindow
+          $code = $proc.ExitCode
+          Write-Host "Unity exit code: $code"
           if (Test-Path $log) {
             Write-Host "==== Unity log: error/failed/exception lines ===="
             Select-String -Path $log -Pattern "error|failed|fatal|exception|could not|unable to|undefined|Received" -CaseSensitive:$false | ForEach-Object { $_.Line } | Select-Object -First 50

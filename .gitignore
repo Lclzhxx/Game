@@ -33,8 +33,15 @@ Thumbs.db
 ehthumbs.db
 
 # --- 存档密钥（E0-S5 / ADR-007）：CI 从 Secret 生成，绝不入库 ---
+# 整个 Generated/ 目录都是 CI 产物（含 Unity 自动补的文件夹 .meta），一并忽略，
+# 避免「目录 meta 入库、密钥文件不入库」的半吊子状态。
+Assets/Scripts/Services/Generated/
+Assets/Scripts/Services/Generated.meta
 Assets/Scripts/Services/Generated/SaveSecret.cs
 Assets/Scripts/Services/Generated/SaveSecret.cs.meta
+
+# --- 存档明文导出（MJ → Save → Dump Decrypted JSON 的调试产物） ---
+*.decrypted.json
 
 # --- 测试产物（本地/CI 均不入库，CI 以 artifact 留证） ---
 /TestResults/

@@ -1,424 +1,385 @@
-# Sprint 2 QA 计划 —— 《秘境·凡尘》
+# Sprint 2 QA 计划与烟雾测试清单 —— 《秘境·凡尘》
 
 > 负责人：严守真（QA / 测试）
-> 版本：v1.0（初稿）
-> 生成日期：2026-07-31
-> 适用范围：S2 冲刺（E0-S5 存档、E2-S2 深度排序、E1-S2 国风 Toon、E1-S3 墨韵高度雾）
+> 版本：**v2.0**（取代 v1.0；v1.0 的 §1/§5 建立在「上游文档缺失」的错误前提上，本版已按原文校对重写）
+> 核查日期：2026-07-31 · 核查 HEAD：`3099d5e` · 工作树：**clean**（W1+W2 全部已 commit，未 push）
 > 目标工程：`D:\WBzone\Game\mijing-fanchen`（Unity 2022.3.62f3c1 / URP 14.0.12）
 
 ---
 
-## 0. 依据与「证据缺口」声明（务必先读）
+## 0. 证据基线与对 v1.0 的更正
 
-### 0.1 本计划的真实依据
+### 0.1 v1.0 的四个「缺口」复核结论
 
-本文档的**全部测试点均来自对仓库磁盘实际内容的核查**，而非转述上游文档。核查时间 2026-07-31，核查基线 commit `60e4831`。
+v1.0 成文时判定 `production/` 与 `docs/` 整树缺失，据此把 §1 验收标准与 §5 风险表整节标为 `[推定·待校对]`。
+**本次复核推翻其中三条**——文档已由 commit `97a20c0 chore(docs): 将项目规划与架构文档纳入版本控制` 纳管，
+现位于 `mijing-fanchen/docs/` 与 `mijing-fanchen/production/`（另有 `.archived_root_docs/` 为旧仓根副本）。
 
-已实际读取并作为依据的产物：
-
-| 类别 | 路径 | 核查结论 |
+| v1.0 缺口 | 复核结论 | 依据 |
 |---|---|---|
-| 存档实现 | `Assets/Scripts/Services/SaveService.cs` `SaveCrypto.cs` `SaveData.cs` `SaveKeyProvider.cs` | 存在 |
-| 深度排序 | `Assets/Scripts/Rendering/DepthSortBootstrap.cs` | 存在 |
-| 墨韵栈 | `Assets/Scripts/Rendering/InkRenderFeature.cs` / `Assets/Shaders/InkFullscreen.shader` | 存在（S1 产物，E1-S3 待扩展） |
-| Toon | `Assets/Shaders/ToonGuofeng.shader` + `Assets/Shaders/Include/ToonGuofengLighting.hlsl` | 存在，3 pass |
-| 测试 | `Assets/Tests/EditMode/{SaveServiceTests,ToonShaderTests}.cs`、`Assets/Tests/PlayMode/DepthSortTests.cs` | 存在 |
-| 测试结果 | `TestResults/editmode-results.xml` | EditMode **21/21 Passed，0 failed / 0 skipped / 0 inconclusive** |
-| CI | `.github/workflows/ci.yml` | 存在，但**不含任何测试执行步骤**（见 §0.2 缺口 C） |
+| A 上游文档整树缺失 | **已解除** | `docs/architecture/adr-007~010.md` + `production/sprints/sprint-02-plan.md` 均可读 |
+| B `s1-ink-baseline` tag 不存在 | **已解除** | `git tag -l` → `s1-ink-baseline` 存在 |
+| C CI 不跑测试 | **仍然成立（P0 阻塞）** | `ci.yml:164` 仅编译校验；`:185` 的 `-runTests` 例子是注释 |
+| D 「PlayMode == 需真机」是错误等价 | **维持成立** | `DepthSortTests.cs` 4 例纯相机状态/反射断言，无 `ReadPixels` |
 
-### 0.2 阻塞级证据缺口（需主理人裁决，本计划相应章节标注为「推定」）
+> **§5 风险表已整节重写**：v1.0 凭代码注释反推的 S2-R1~R8 编号**逐条皆错**
+> （例：v1.0 猜 R1=URP 版本漂移，原文 R1=8GB 内存 CI；v1.0 猜 R8=基线 flaky，原文 R8=AesGcm 误用）。
+> 本版 §5 全部改用 `sprint-02-plan.md §4` 原文，不再有推定项。
 
-派单时假定「只有 QA 计划一个文件缺失」。**磁盘核查结论：假定不成立。** 实际缺口如下：
+### 0.2 本版新发现的三项阻塞（v1.0 未识别）
 
-- **缺口 A —— 上游依据文档整体不存在。**
-  `production/` 与 `docs/` 两棵目录树在磁盘与 git 索引中**均不存在**。
-  验证：`git ls-files` 顶层仅 `Assets/ Packages/ ProjectSettings/ .github/ README.md`；
-  全盘 `find . -name "*.md"`（排除 `Library/`）**仅返回 `README.md` 一个文件**。
-  因此 `production/sprints/sprint-02-plan.md`（§1 验收标准 / §4 风险 / §5 试玩窗口）与
-  `docs/architecture/adr-007~010` **均无法读取**。
-  → **影响**：§1 的验收标准、§5 的 S2-R1~R8 风险条目，我**无法引用原文**。
-  凡属此类内容，本文档一律标注 **`[推定·待校对]`**，依据是代码注释中残留的 ADR 编号与红线描述
-  （如 `ToonShaderTests.cs` 提到「ADR-008 / R5 红线」、`DepthSortTests.cs` 提到「ADR-009」、
-  `ToonGuofeng.shader:12` 提到「ADR-010」、`ToonGuofengLighting.hlsl:70` 提到「ADR-010 v2 / E1-S3」）。
-  **我不臆造验收点**——上游文档补齐后必须逐条校对本文档 §1 与 §5。
+- **`QA-BLOCK-1` —— W2 无任何绿色测试证据，「EditMode 21/21」是 W1 口径，已过期。**
+  `TestResults/editmode-results.xml` 根节点为
+  `testcasecount="21" passed="21" start-time="2026-07-31 03:26:54Z"`，
+  该时刻**早于** W2 两个提交（`a5ca611` E1-S2 收尾、`3099d5e` E1-S3）。
+  该 XML 覆盖的是 `SaveServiceTests(17) + ToonShaderTests(4)`。
+  W2 后测试属性数已增至 **SaveService 17 + Toon 15 + HeightFog 22**，21 这个数字**不再是通过基线**。
+  唯一的 W2 运行尝试 `editmode-w2-run.log` 停在 `Application.AssetDatabase Initial Refresh Start` 即中断，
+  **未产出 XML**（与 engineering-lead-3 报告的 ILPP gRPC 绑定 `localhost:80` 失败致导入卡死一致）。
+  → **S2 当前不存在可签收的测试证据。**
 
-- **缺口 B —— `s1-ink-baseline` tag 不存在。**
-  验证：`git tag -l` 返回**空**（仓库当前零 tag）。
-  → 派单要求「回归基线含 `s1-ink-baseline` tag」，但该 tag 尚未创建。本计划 §4 将其列为
-  **前置动作 GATE-0**，必须在 E1-S3 动工**之前**补打，否则「关雾墨韵旧基线逐像素不变」无参照物，
-  该验收项直接失效。
+- **`DOC-BUG-1`（✅ **已修复**，commit `16e3853`）—— `sprint-02-plan.md` 的 E2-S2 验收标准曾写反排序轴符号，会导致「正确实现被判 FAIL」。**
+  已复核修复结果：`:97` 现为 `(-offset).normalized ≈ (0,-0.7071,-0.7071)` 并注明初稿 `(0,1,1)` 为符号笔误；
+  `:114` 现为 `(0, -0.7071, -0.7071)`。**五处权威源（ADR-009 / Bootstrap / Tests / CameraRig / 冲刺计划）现已全部一致为负号。**
+  以下记录保留作追溯：
+  | 出处 | 轴值 | 状态 |
+  |---|---|---|
+  | `sprint-02-plan.md:97` / `:114`「轴 ≈ (0, 0.7071, 0.7071)」 | **正** | ❌ 陈旧笔误 |
+  | `adr-009:27-35`（含专门的「符号推导」修正段） | **负** `-offset.normalized` | ✅ 权威 |
+  | `DepthSortBootstrap.cs:51` `return (-cameraOffset).normalized;` | **负** | ✅ |
+  | `DepthSortTests.cs:56` `expected = -(new Vector3(0,14,14)).normalized` | **负** | ✅ |
+  | `CameraRig.cs:43` `LookRotation(-offset.normalized)` | **负**（相机前向自洽） | ✅ |
+  ADR-009 已明写「初稿示例中的 `(0,1,1).normalized` 为符号笔误，若误用会导致前后绘制次序整体反转」。
+  **代码是对的，冲刺计划的验收标准是错的。**
+  → **动作**：请程基岩修正 `sprint-02-plan.md:97/114` 两处为 `(0, -0.7071, -0.7071)`。
+  在修正前，**任何人按 §1 验收标准逐条核对 E2-S2 都会得出错误的 FAIL 结论**。
 
-- **缺口 C —— CI 当前根本不跑测试。**
-  验证：`ci.yml` 唯一实质步骤为
-  `Start-Process Unity.exe -ArgumentList "-batchmode -quit -nographics -projectPath ... -logFile ..."`，
-  **无 `-runTests`、无 `-testPlatform`、无 `-testResults`**。
-  注释自述「门禁（骨架，待 E1-S1 接实）：墨韵回归 + 帧率冒烟」——即门禁至今是**骨架**。
-  → **影响**：§2 描述的「CI 门控」目前**尚未存在**，属本 Sprint 必须交付的工程项，
-  而非既有能力。已在 §2.4 列为 `CI-TASK-1/2/3` 交付项，需程基岩配合。
-
-- **缺口 D（对派单的技术更正）—— PlayMode 测试不需要 GPU。**
-  派单称「PlayMode 需本机 GPU」。核查 `Assets/Tests/PlayMode/DepthSortTests.cs` 全文（106 行）后：
-  4 个用例（3× `[UnityTest]` + 1× `[Test]`）**全部是相机状态断言与反射断言**
-  （`cam.transparencySortMode`、`cam.transparencySortAxis`、`typeof(DepthSortBootstrap).GetMethod("Update")`），
-  **无一处读取渲染输出、无一处截图、无一处 `Texture2D.ReadPixels`**。文件头注释亦自述
-  「纯相机状态断言，不依赖渲染输出，CI 可跑」。
-  → **结论：这 4 个 PlayMode 用例可在 `-nographics` 无头下执行**，应纳入 CI 门控（见 §2.2），
-  不应被划入「真机项」而放弃自动化。真正需要 GPU 的是**截图基线比对**与 **FPS 实测**，与测试平台
-  （EditMode/PlayMode）是**正交的两个维度**——本计划 §1 矩阵按「是否需 GPU」独立成列，
-  避免沿用「PlayMode == 需真机」这一错误等价。
+- **`QA-NOTE-1` —— ADR-010 keyword 偏差：QA 立场为「建议批准」，且它反而加强了硬验收。**
+  `InkFullscreen.shader:63` 用 `multi_compile_local_fragment _ _MJ_HEIGHT_FOG`，ADR-010 原文为 `shader_feature_local`。
+  代码注释（`:54-62`）给出的理由成立：雾开关由 `InkRenderFeature` 运行时 `CoreUtils.SetKeyword` 打，
+  而 `shader_feature` 只按**材质资产落盘时**的 keyword 状态入包 → 若 `InkMaterial.mat` 存盘时雾是关的，
+  开雾变体会被构建期剥掉，表现为「真机打开雾但画面无反应，且只在出包后暴露」。
+  **对验收的影响**：关雾变体中雾代码经 `#if defined(_MJ_HEIGHT_FOG)`（`:158-202`）整段不参与编译，
+  故「关雾逐像素不变」**不受削弱，反而更可证**。变体总数 2，远低于预算。
+  → 建议主理人**批准偏差并回写 ADR-010**。测试按现行 `multi_compile` 行为编写，无需改。
 
 ---
 
 ## 1. 测试矩阵（验收标准 → 测试用例）
 
-**列义说明**：
-- **平台**：EditMode / PlayMode / 手动。
-- **无头可验**：能否在 `-batchmode -nographics` 下执行（决定能否进 CI 门控）。
-- **需 GPU**：是否必须在 GTX 950M 真机带图形环境下执行。
-- 注意「PlayMode」与「需 GPU」**互相独立**（见 §0.2 缺口 D）。
+**列义**：**无头** = 能否在 `-batchmode -nographics` 下跑（决定能否进 CI 门控）；**需 GPU** = 必须带图形环境。
+二者**正交**——PlayMode ≠ 需真机（§0.1 缺口 D）。
 
-### 1.1 E0-S5 存档（SaveService / AES-256-CBC + HMAC-SHA256）
+### 1.1 E0-S5 存档加密（ADR-007 · `sprint-02-plan.md:52-57`）
 
-依据：`SaveServiceTests.cs` 实测用例（17 个，全部 Passed）。
-
-| # | 验收标准 | 测试用例（实存方法名） | 平台 | 无头可验 | 需 GPU | 现状 |
+| # | 验收标准（原文） | 测试用例 | 平台 | 无头 | 需 GPU | 现状 |
 |---|---|---|---|---|---|---|
-| A1 | 存读往返所有字段一致 | `RoundTrip_AllFieldsEqual` | EditMode | ✅ | ❌ | PASS |
-| A2 | 反篡改：任意区段翻转 1 字节必拒读且不抛未捕获异常 | `Tamper_FlipOneByte_IsRejected`（分区段参数化） | EditMode | ✅ | ❌ | PASS |
-| A3 | 篡改后回退 `.bak` | `Tamper_WithBackup_FallsBackToBak` | EditMode | ✅ | ❌ | PASS |
-| A4 | migration 骨架 v0 → v1 | `Migration_V0Save_UpgradesToCurrentVersion` | EditMode | ✅ | ❌ | PASS |
-| A5 | 未来版本档拒读 | `Migration_FutureVersion_IsRejected` | EditMode | ✅ | ❌ | PASS |
-| A6 | dev 密钥档「警告不拒读」（P3） | `DevKeySave_LoadWithReleaseService_WarnsButLoads` | EditMode | ✅ | ❌ | PASS |
-| A7 | 原子写盘：不留 `.tmp`，正确轮转 `.bak` | `Save_LeavesNoTmpFile_AndRotatesBak` | EditMode | ✅ | ❌ | PASS |
-| A8 | 槽位不存在返回 NotFound | `Load_MissingSlot_ReturnsNotFound` | EditMode | ✅ | ❌ | PASS |
-| A9 | 截断/空文件健壮性 | `CorruptLength_IsRejectedWithoutThrow`（参数化） | EditMode | ✅ | ❌ | PASS |
+| A1 | 往返一致：字段全等 | `RoundTrip_AllFieldsEqual` | EditMode | ✅ | ❌ | W1 绿 |
+| A2 | 反篡改：任意位置翻转 1 字节 → 拒读且不抛未捕获异常（参数化覆盖 头部/salt/IV/MAC/密文） | `Tamper_FlipOneByte_IsRejected` | EditMode | ✅ | ❌ | W1 绿 |
+| A3 | 回退 `.bak` | `Tamper_WithBackup_FallsBackToBak` | EditMode | ✅ | ❌ | W1 绿 |
+| A4 | migration 骨架 v0 → v1 | `Migration_V0Save_UpgradesToCurrentVersion` | EditMode | ✅ | ❌ | W1 绿 |
+| A5 | 未来版本档拒读 | `Migration_FutureVersion_IsRejected` | EditMode | ✅ | ❌ | W1 绿 |
+| A6 | P3：dev 密钥档「警告不拒读」 | `DevKeySave_LoadWithReleaseService_WarnsButLoads` | EditMode | ✅ | ❌ | W1 绿 |
+| A7 | 原子写盘、不留 `.tmp`、轮转 `.bak` | `Save_LeavesNoTmpFile_AndRotatesBak` | EditMode | ✅ | ❌ | W1 绿 |
+| A8 | 槽位不存在 → NotFound | `Load_MissingSlot_ReturnsNotFound` | EditMode | ✅ | ❌ | W1 绿 |
+| A9 | 截断/空文件健壮性 | `CorruptLength_IsRejectedWithoutThrow` | EditMode | ✅ | ❌ | W1 绿 |
+| **A10** | **密钥不进仓库：仓库 grep 不到密钥字面量** | `Repo_GeneratedSaveSecret_IsGitIgnored`、`Repo_NoCommittedKeyLiteral` ✅ 已补 | EditMode | ✅ | ❌ | **未跑** |
+| **A11** | CI 日志不回显 Secret | **仍无自动化覆盖** ⚠️ | — | — | — | **残留缺口** |
 
-**QA 判定：E0-S5 覆盖 ADEQUATE。** 断言覆盖正常路径 + 篡改 + 截断 + 版本迁移 + 原子性，边缘情况齐备。
+**判定：ADEQUATE。A10 缺口已由 `SaveSecurityTests.cs`（commit `3e6c622`）闭合。**
 
-**补充缺口（建议 S2 内补，非阻塞）**：
-- A10 `[推定·待校对]` 并发/重入写同一槽位的行为未见覆盖。
-- A11 磁盘写满 / 只读目录下 `Save` 的失败路径未见覆盖（可用只读目录模拟）。
+已复核该文件质量，**断言前提均成立**（非空断言）：
+- `.git` 位于 `mijing-fanchen/`，故 `RepoRoot = Path.GetDirectoryName(Application.dataPath)` 解析正确；
+- `.gitignore:38` 含 `Assets/Scripts/Services/Generated/`、`:40` 含 `SaveSecret.cs` → 两条字符串断言均可通过；
+- `git check-ignore` 对生成路径实测 **exit 0** → 主守卫通过；
+- `SaveCrypto_DoesNotUseAesGcmOrChaCha20` 采用「禁用项 + 批准项」双向断言（反查 `CipherMode.CBC` / `HMACSHA256`），
+  规避了「只是没写 AesGcm」的空断言陷阱 —— 这个写法是对的。
 
-### 1.2 E2-S2 深度排序（DepthSortBootstrap / ADR-009）
+**残留两点（非阻塞，建议 S3 处理）**：
+1. **A11 未覆盖**：`sprint-02-plan.md:56` 的验收标准原文是两句——「仓库内 grep 不到密钥字面量」**且**「CI 日志不回显 Secret」。
+   前者已闭合，**后者仍无守护**。建议在 `ci.yml` 生成步骤后加一条断言：日志中不得出现 Secret 明文/其 Base64 前缀
+   （PowerShell 侧 `Select-String` 自检即可，无需 Unity）。
+2. **`RunGit` 静默降级风险**：git 不可用时 `RunGit` 返回 `null`，两条 git 守卫被**跳过**而非失败，
+   仅余 `.gitignore` 文本断言。自托管 runner 上 git 必然可用，故实际风险低；
+   但建议在降级分支加一行 `UnityEngine.Debug.LogWarning`，避免「守卫被静默跳过」在日志里查无痕迹。
 
-依据：`DepthSortTests.cs` 实测用例（4 个）。
+### 1.2 E2-S2 Y-Z 深度排序（ADR-009 · `sprint-02-plan.md:113-117`）
 
-| # | 验收标准 | 测试用例 | 平台 | 无头可验 | 需 GPU | 现状 |
+| # | 验收标准 | 测试用例 | 平台 | 无头 | 需 GPU | 现状 |
 |---|---|---|---|---|---|---|
-| B1 | 相机置 `CustomAxis`，轴 = `-offset.normalized`（默认 offset (0,14,14) → \|y\|≈\|z\|≈0.7071，模长 1） | `Bootstrap_SetsCustomAxis_FromDefaultOffset` | PlayMode | ✅ | ❌ | 待跑 |
-| B2 | 轴随 `CameraRig.offset` 推导，不写死 | `Bootstrap_AxisFollowsRigOffset` | PlayMode | ✅ | ❌ | 待跑 |
-| B3 | `GreyboxBuilder.BuildScene()` 自动给主相机接线 | `GreyboxBuilder_WiresBootstrapOnMainCamera` | PlayMode | ✅ | ❌ | 待跑 |
-| B4 | 零每帧成本红线：无 `Update/LateUpdate/FixedUpdate` | `Bootstrap_HasNoPerFrameCallbacks` | PlayMode（`[Test]`） | ✅ | ❌ | 待跑 |
-| B5 | 排序正确性肉眼终验（SortingReview 场景，C4） | 手动：`SortingReviewBuilder` 搭场景，人工判定前后遮挡 | 手动 | ❌ | ✅ | 待做 |
+| B1 | `transparencySortMode == CustomAxis` 且轴 ≈ **(0, -0.7071, -0.7071)**（见 `DOC-BUG-1`） | `Bootstrap_SetsCustomAxis_FromDefaultOffset` | PlayMode | ✅ | ❌ | **未跑** |
+| B2 | 轴随 `CameraRig.offset` 推导，不写死 | `Bootstrap_AxisFollowsRigOffset` | PlayMode | ✅ | ❌ | **未跑** |
+| B3 | `GreyboxBuilder` 自动接线主相机 | `GreyboxBuilder_WiresBootstrapOnMainCamera` | PlayMode | ✅ | ❌ | **未跑** |
+| B4 | 零每帧成本（无 Update/LateUpdate/FixedUpdate） | `Bootstrap_HasNoPerFrameCallbacks` | PlayMode `[Test]` | ✅ | ❌ | **未跑** |
+| B5 | 无穿插：SortingReview 截图基线 + 肉眼复核（C4） | `sorting_baseline.png` 比对 + 人工 | 手动 | ❌ | ✅ | 待做 |
+| B6 | SortingGroup 组合体整体移动无构件互穿 | 人工（SortingReview 场景） | 手动 | ❌ | ✅ | 待做 |
 
-**注**：B1~B4 **无头可跑**（§0.2 缺口 D），必须进 CI。B5 是唯一真机项。
-**轴符号争议已在代码内解决**：`DepthSortTests.cs:9-12` 记录 ADR-009 正文 `-offset.normalized` 为准，
-其代码示例 `(0,1,1)` 为符号笔误。`[推定·待校对]` ——ADR-009 原文不可读，此结论源自测试文件注释，
-需 ADR 补齐后确认，并建议**回写修正 ADR-009 示例**，避免后人再踩。
+**B1~B4 无头可跑，必须进 CI 门控**——它们至今一次都没在 CI 里执行过。
 
-### 1.3 E1-S2 国风 Toon（ToonGuofeng.shader / ADR-008）
+### 1.3 E1-S2 国风 Toon（ADR-008 · `sprint-02-plan.md:82-88`）
 
-依据：`ToonShaderTests.cs`（4 个，全部 Passed）+ shader 实际结构核查。
-
-| # | 验收标准 | 测试用例 | 平台 | 无头可验 | 需 GPU | 现状 |
+| # | 验收标准 | 测试用例 | 平台 | 无头 | 需 GPU | 现状 |
 |---|---|---|---|---|---|---|
-| C1 | Shader 存在且当前平台受支持 | `Shader_Exists_AndSupported` | EditMode | ✅ | ❌ | PASS |
-| C2 | 编译零错误 | `Shader_CompilesWithoutErrors`（`ShaderUtil.ShaderHasError`） | EditMode | ✅ | ❌ | PASS |
-| C3 | **R5 红线**：材质零描边参数（属性名不得含 `outline`） | `Shader_HasNoOutlineProperties_R5RedLine` | EditMode | ✅ | ❌ | PASS |
-| C4 | 三 pass 结构（`ToonGuofengForward` / `ShadowCaster` / `DepthOnly`，墨线 Sobel 依赖 DepthOnly） | `Shader_HasForwardShadowCasterDepthOnlyPasses`（`passCount ≥ 3`） | EditMode | ✅ | ❌ | PASS |
-| C5 | SRP Batcher 兼容 | 手动：Frame Debugger 查看 `SRP Batch` 合批，或 Inspector 顶部 SRP Batcher 状态栏 | 手动 | ❌ | ✅ | 待做 |
-| C6 | 变体总数 ≤ 64 | 手动：`Shader Inspector → Compile and show code → variant count` | 手动 | ⚠️ 部分 | ✅ | 待做 |
-| C7 | H3 Toon 视觉初评（明暗二值交界、水墨冷灰阴影、Rim 受光侧） | 手动：真机 SortingReview / Greybox 场景目视 | 手动 | ❌ | ✅ | 待做 |
-| C8 | 截图基线建立 | 见 §2.3 | 手动+PlayMode | ❌ | ✅ | 待做 |
+| C1 | `ShaderHasError == false` 且 `isSupported == true` | `Shader_Exists_AndSupported` / `Shader_CompilesWithoutErrors` | EditMode | ✅ | ❌ | W1 绿 |
+| C2 | R5 红线：材质无任何描边参数 | `Shader_HasNoOutlineProperties_R5RedLine` | EditMode | ✅ | ❌ | W1 绿 |
+| C3 | 三 pass（Forward/ShadowCaster/DepthOnly） | `Shader_HasForwardShadowCasterDepthOnlyPasses` | EditMode | ✅ | ❌ | W1 绿 |
+| C4 | 变体总数 ≤ 64 | W2 新增（`ToonShaderTests` 已扩至 15 属性，含 clamp/NaN 守卫） | EditMode | ✅ | ❌ | **未跑** |
+| C5 | SRP Batcher 兼容（Frame Debugger 人工 + 截图留档） | 人工 | 手动 | ❌ | ✅ | 待做 |
+| C6 | 无双描边：勾线仅来自墨韵 Pass（截图基线） | `toon_baseline.png` 比对 | 手动 | ❌ | ✅ | 待做 |
+| C7 | 与墨韵共存：ToonReview 开墨韵基线通过 + 墨韵栈 < 3ms | 联合基线 + ProfilerRecorder | 手动 | ❌ | ✅ | 待做 |
+| C8 | ⏳ H3 观感初评（**非本 Story 出门条件**） | 试玩窗口 | 手动 | ❌ | ✅ | 待做 |
 
-**已核实的 shader 结构**（`ToonGuofeng.shader`）：
-`Pass "ToonGuofengForward"`(L100-102, LightMode=UniversalForward) /
-`Pass "ShadowCaster"`(L212-215) / `Pass "DepthOnly"`(L282-285) —— 与 C4 断言一致。
-属性块含 Base / Ramp / Ink Shadow / Rim / Brush / Specular 六组，**确无 outline 属性**，C3 红线成立。
+> **C8 口径提醒**：`sprint-02-plan.md:88` 明标 H3 观感为 ⏳ 且「**非**本 Story 出门条件，最终观感待 art-director 参数对齐后另行评审」。
+> 派单把「H3 Toon 初评」列入真机验证项是对的，但**不得因 H3 主观评价不佳而阻塞 E1-S2 签收**——请勿误升为出门条件。
 
-**C6 的自动化建议（新增用例）**：
-`ShaderUtil.GetShaderVariantCount` / `ShaderUtil.GetShaderGlobalKeywords` 属编辑器 API，
-**可在 EditMode 无头下断言变体上限**，无需真机。建议新增
-`Shader_VariantCount_WithinBudget`，把 C6 从「手动」升级为「无头可验」，降低人工负担。
+### 1.4 E1-S3 高度雾（ADR-010 · `sprint-02-plan.md:141-146`）
 
-**已知 shader keyword**（影响变体数，来自属性块）：
-`_RAMPTEX_ON`、`_BRUSHNORMAL_ON`、`_SpecularOn`（Toggle）。
+W2 已实现（`3099d5e`），`HeightFogTests.cs` 共 18 个测试方法（含 `[TestCase]` 展开约 22 例）。
 
-### 1.4 E1-S3 墨韵高度雾（InkRenderFeature / InkFullscreen.shader 扩展 · ADR-010）
+| # | 验收标准（原文） | 测试用例（实存方法名） | 平台 | 无头 | 需 GPU | 现状 |
+|---|---|---|---|---|---|---|
+| D1 | **关雾零回归：`_MJ_HEIGHT_FOG` off 时既有墨韵基线逐像素不变（变体剔除生效）** | 源码层：`InkShader_FogCodeIsFullyGatedByKeyword` + `Settings_DefaultsToDisabled_SoS1PixelsAreUntouched`；**像素层需真机**（→ M4） | EditMode + 手动 | 部分 ✅ | ✅（像素层） | **未跑** |
+| D2 | 无新增 Pass/Blit，C2 守住 | `InkShader_HasExactlyOnePass_C2RedLine`、`InkRenderFeature_BlitSequenceUnchangedFromS1_C2RedLine` | EditMode | ✅ | ❌ | **未跑** |
+| D3 | 参数安全：全参数越界 clamp、无 NaN | `Guard_Float_RejectsNonFinite`、`Guard_Float_ClampsOutOfRange`、`Guard_Color_SanitizesPerChannel_AndForcesOpaqueAlpha`、`ApplyTo_WritesOnlySaneValues_EvenWithPoisonedInput` | EditMode | ✅ | ❌ | **未跑** |
+| D4 | keyword 门控双向同步 | `ApplyTo_SyncsKeyword_BothDirections`、`InkShader_DeclaresHeightFogKeywordSwitch`、`ApplyTo_NullMaterial_DoesNotThrow` | EditMode | ✅ | ❌ | **未跑** |
+| D5 | 雾参数齐备且与单一事实来源一致 | `InkShader_ExposesAllFogProperties_MatchingSingleSourceOfTruth` | EditMode | ✅ | ❌ | **未跑** |
+| D6 | 先晕染后勾线（ADR-010 顺序） | `InkShader_FogAppliedBeforeLineWork` | EditMode | ✅ | ❌ | **未跑** |
+| D7 | URP14 安全 API 重建世界坐标 | `InkShader_WorldPosReconstruction_UsesUrp14SafeApi` | EditMode | ✅ | ❌ | **未跑** |
+| D8 | Volume Profile 低饱和冷调固化 | `VolumeProfile_IsCommitted_AndIsLowSaturationCoolTone` | EditMode | ✅ | ❌ | **未跑** |
+| D9 | 基线条目存在（真图或占位） | `FogBaseline_EntryExists_RealOrPending` | EditMode | ✅ | ❌ | **未跑** |
+| D10 | 开雾正确：低 Y 浓、高 Y 清透、天空不糊死 | `ink_fog_baseline.png` 比对 + 目视 | 手动 | ❌ | ✅ | 待做 |
+| D11 | 性能：墨韵栈（含雾）< 3ms，雾增量 < 0.5ms | ProfilerRecorder 真机回填 | 手动 | ❌ | ✅ | 待做 |
 
-**状态：代码尚未落地**，本节为**前瞻测试设计**（Story 完成前请勿据此判定 PASS/FAIL）。
-
-已核实的关键事实（决定测试形态）：
-- `ToonGuofeng.shader:12` 注释：「刻意**不加** `multi_compile_fog`：雾由墨韵全屏 Pass 负责（ADR-010）」。
-- `ToonGuofengLighting.hlsl:70-76`：`ApplyMJHeightFog(color, positionWS)` **当前是恒等函数**
-  （`return color;`），注释自述「ADR-010 v2 备份路径，S2 默认 no-op……**不要**在此实现雾」。
-- `ToonGuofeng.shader:204` 已调用该钩子。
-→ **因此 E1-S3 的雾必须实现在 `InkFullscreen.shader` 全屏 Pass 内**，
-  **不得**改动 `ApplyMJHeightFog`。这构成一条可自动化的红线（下表 D1）。
-
-| # | 验收标准 `[推定·待校对]` | 测试用例 | 平台 | 无头可验 | 需 GPU |
-|---|---|---|---|---|---|
-| D1 | **红线**：`ApplyMJHeightFog` 保持恒等（雾不得实现在 Toon 内） | 新增 EditMode：正则断言 `ToonGuofengLighting.hlsl` 中该函数体仅 `return color;` | EditMode | ✅ | ❌ |
-| D2 | **红线**：Toon shader 不得出现 `multi_compile_fog` | 新增 EditMode：源码正则断言 | EditMode | ✅ | ❌ |
-| D3 | `InkFullscreen.shader` 新增雾参数且编译零错误 | 扩展 `ToonShaderTests` 模式：`ShaderUtil.ShaderHasError("Custom/InkFullscreen")` | EditMode | ✅ | ❌ |
-| D4 | `InkRenderFeature` 雾开关默认值与序列化字段存在 | 新增 EditMode：反射断言 `InkSettings` 字段名/`Range` 特性 | EditMode | ✅ | ❌ |
-| D5 | **关雾时输出与 S1 墨韵基线逐像素不变** | 截图比对 vs `s1-ink-baseline` | 手动/PlayMode | ❌ | ✅ |
-| D6 | 开雾时高度雾沿 Y 轴梯度正确、近处不糊 | 目视 + 截图基线 | 手动 | ❌ | ✅ |
-| D7 | 开/关雾 FPS 均 ≥ 58 @1080p | `FpsProbe` 实测 | 手动 | ❌ | ✅ |
-
-**D1/D2 价值说明**：这两条把「架构约束」变成**无头可验的自动化红线**，
-与 C3（R5 零描边）同属「防止职责漂移」的守卫测试，成本极低、回归价值极高。强烈建议纳入。
-
-**现有 `InkFullscreen.shader` 属性基线**（E1-S3 只应**新增**，不应删改，供 D3 回归比对）：
-`_SourceTex` / `_LineThickness` / `_LineStrength` / `_PaperStrength` / `_FeibaiThreshold` / `_InkStainStrength`。
+**判定：测试设计 ADEQUATE。** D1 被正确拆成「源码级门控可无头证」+「像素级需真机」两层，思路正确。
+`HeightFogTests` 把 C2 红线、参数顺序、URP14 API 选型都做成了源码级断言，属高回归价值的「防漂移」守卫。
 
 ---
 
 ## 2. 烟雾测试清单（CI 门控）
 
-### 2.1 门控总原则
+### 2.1 门控原则
+- FAIL 即「未达 QA」，不放行。
+- 无头层必须全自动、零 GPU 依赖；需 GPU 的一律走 §2.3 / §3。
+- 单次门控目标 ≤ 15 分钟（8GB 机器现实约束）。
 
-- 烟雾门控 **FAIL 即「未达 QA」**，不放行合并。
-- 门控必须**全自动、无人值守、无 GPU 依赖**。凡需 GPU 的项一律**不进**烟雾门控，
-  改走 §3 真机验证（人工签收）。
-- 单次门控目标耗时 ≤ 15 分钟（8GB 机器现实约束）。
-
-### 2.2 第一层：EditMode + PlayMode 无头自动测试（CI 强制）
+### 2.2 第一层：无头自动套件（CI 强制 · 当前**尚未接实**）
 
 ```powershell
-# EditMode（现有 21 用例）
-Unity.exe -batchmode -quit -nographics `
-  -projectPath "<repo>" `
-  -runTests -testPlatform EditMode `
-  -testResults "<repo>\TestResults\editmode-results.xml" `
-  -logFile "D:\ci_editmode.log"
+# Job 1: EditMode（SaveService + ToonShader + HeightFog）
+-batchmode -quit -nographics -projectPath "<repo>" `
+  -runTests -testPlatform EditMode -testResults "<repo>\TestResults\editmode-results.xml"
 
-# PlayMode（现有 4 用例，无 GPU 依赖 —— 见 §0.2 缺口 D）
-Unity.exe -batchmode -quit -nographics `
-  -projectPath "<repo>" `
-  -runTests -testPlatform PlayMode `
-  -testResults "<repo>\TestResults\playmode-results.xml" `
-  -logFile "D:\ci_playmode.log"
+# Job 2: PlayMode（DepthSort 4 例，纯状态断言，无需 GPU）
+-batchmode -quit -nographics -projectPath "<repo>" `
+  -runTests -testPlatform PlayMode -testResults "<repo>\TestResults\playmode-results.xml"
 ```
 
-**通过判据**：两份 XML 根节点均满足 `failed="0"` 且 `inconclusive="0"`，
-且 `passed == total`（当前基线：EditMode `total=21 passed=21`）。
-**`skipped > 0` 视为 CONCERNS**，需在 PR 说明中解释原因，不自动放行。
+**通过判据**：两份 XML 均 `failed="0"` 且 `inconclusive="0"` 且 `passed == total`。
+`skipped > 0` 判 **CONCERNS**，需 PR 说明，不自动放行。
 
-**注意（Unity 退出码陷阱）**：`ci.yml` 已记录两条铁律，测试步骤同样适用——
-① `run:` 块必须 100% 纯 ASCII（PS 5.1 按 GBK 误读 UTF-8 临时脚本 → ParseError 秒退）；
-② 必须 `Start-Process -Wait` 启动（`Unity.exe` PE Subsystem=2 为 GUI 子系统，
-PowerShell `&` 不阻塞 → 秒退 + 取到垃圾退出码）。
-**新增第三条**：`-runTests` 下 Unity 用**退出码表达测试结果**（0=全过，2=有失败，3=运行失败），
-不可简单 `if ($code -ne 0) { throw }` 了事，须区分 2 与 3 并**优先解析 XML**，
-否则「测试失败」与「Unity 崩了」无法区分，排障会走弯路。
+> **基线数字更新**：**不要再用「21/21」做判据**（§0.2 `QA-BLOCK-1`）。
 
-### 2.3 第二层：PlayMode 截图基线比对（**本机 CI 补跑，不进无头门控**）
+**预期用例数（2026-07-31 静态统计，HEAD `3e6c622`）**：
 
-**前提：此层必须带图形环境（去掉 `-nographics`）**，因此**不能**在当前无头 CI 中执行。
-标注为 `LOCAL-CI`：由制作人在本机带 GPU 的 runner 会话中触发。
-
-基线文件规范：
-
-| Story | 基线文件 | 采集场景/条件 | 容差 |
-|---|---|---|---|
-| E2-S2 | `Tests/Baselines/e2-s2-sorting_1920x1080.png` | `SortingReviewBuilder` 场景，固定相机 offset (0,14,14)，固定帧（`Time.captureFramerate` 锁定后取第 N 帧） | ≥ 99% 像素通道差 < 2/255 |
-| E1-S2 | `Tests/Baselines/e1-s2-toon_1920x1080.png` | Greybox 场景，Toon 材质样球 + 主平行光固定角度，**墨韵 Pass 关闭**（隔离 Toon 变量） | ≥ 99% 像素通道差 < 2/255 |
-| E1-S3（关雾） | `Tests/Baselines/s1-ink-baseline_1920x1080.png` | 同 S1 墨韵采集条件，雾开关 = OFF | **逐像素严格相等**（差 = 0），见下 |
-| E1-S3（开雾） | `Tests/Baselines/e1-s3-fog-on_1920x1080.png` | 同上，雾开关 = ON，雾参数取默认值 | ≥ 99% 像素通道差 < 2/255 |
-
-**关于 E1-S3 关雾项容差的 QA 立场（与派单不同，请裁决）**：
-派单给的是统一容差「≥99% 像素差 <2/255」。但 D5 的语义是**「关雾 = 走原路径，不应有任何改变」**，
-这是**布尔性质**而非「视觉近似」性质。若给 1% 像素的宽容，正好会**放过**「雾代码在关闭时仍轻微
-污染输出」这类最该抓的回归。
-→ **建议：D5 采用逐像素严格相等（diff == 0）**，其余三项沿用 99%/2-255 容差。
-若关雾路径因浮点重排无法做到严格相等，则说明**关雾并未真正短路**，那本身就是应修的缺陷。
-**此为建议，最终由主理人/制作人裁定。**
-
-**采集纪律（否则基线必然 flaky）**：固定分辨率 1920×1080、固定 Quality 等级、
-固定随机种子、锁定 `Application.targetFrameRate` 与 `Time.captureFramerate`、
-等待 shader 编译与资源加载完成后再截图（至少 `yield return new WaitForEndOfFrame()` ×3）、
-**禁用 FpsProbe 的 OnGUI 叠加**（否则 FPS 数字每帧变化会直接毁掉基线 —— 这是本工程最现实的 flaky 源，
-`FpsProbe.cs` 由 `GreyboxBuilder` 自动挂到 Main Camera 上，采集前必须显式关闭）。
-
-### 2.4 CI 交付项（当前不存在，需程基岩配合实现）
-
-| ID | 交付内容 | 优先级 |
+| 套件 | 文件 | 用例数 |
 |---|---|---|
-| `CI-TASK-1` | 在 `ci.yml` 追加 EditMode `-runTests` step + XML 结果解析 + 退出码 0/2/3 分流 | P0 |
-| `CI-TASK-2` | 追加 PlayMode `-runTests` step（无头，§0.2 缺口 D 已证可行） | P0 |
-| `CI-TASK-3` | 结果 XML 打印摘要到 Actions 控制台（弱网 runner 不可用 `upload-artifact`，已实测超时） | P1 |
-| `CI-TASK-4` | `LOCAL-CI` 截图基线脚本（带 GPU 会话手动触发） | P1 |
+| EditMode | `SaveServiceTests` | 17 |
+| EditMode | `ToonShaderTests` | 15 |
+| EditMode | `HeightFogTests` | 22 |
+| EditMode | `SaveSecurityTests`（新增） | 3 |
+| **EditMode 合计** | | **57** |
+| **PlayMode** | `DepthSortTests` | **4** |
+| **总计** | | **61** |
 
-**8GB 机器拆 job 建议（派单要求项）**：
-当前 `ci.yml` 为单 job。加入两次 `-runTests` 后，同一 job 内会**连续三次**启动 Unity
-（编译校验 + EditMode + PlayMode），Library 缓存与 Mono 堆叠加，8GB 物理内存下 OOM 风险显著上升。
-→ **建议拆为两个 job**：
-- `job: compile-and-editmode` —— 编译/导入校验 + EditMode 测试（复用同一次 Unity 冷启动最省内存，
-  可用 `-runTests -testPlatform EditMode` 单次调用同时完成两件事，**推荐**）。
-- `job: playmode`（`needs: compile-and-editmode`）—— PlayMode 测试，**串行**执行。
-两 job 均 `runs-on: self-hosted` 且**必须串行**（`needs:` 保证），
-**切勿并行** —— 同一台自托管机上两个 Unity 实例会争抢同一个 `Library/` 目录锁并互相踩踏，
-既 OOM 又结果不可信。
-另沿用 README 既有建议：Windows 页面文件置于 D 盘、放大到 16–24 GB。
+统计口径：正则 `^\s*\[(Test|TestCase|UnityTest)[\]\(]` 计数。已确认全仓**无** `[TestCaseSource]`/`[Values]`/`[Range]`/`[Ignore]`，
+故「属性行数 = NUnit 展开后的用例数」**成立**（`[TestCase]` 逐行 1:1 展开）。
+该口径在 W1 已被实测验证：SaveService 17 + Toon 4 = 21，与 `editmode-results.xml` 的 `total="21"` 精确吻合。
+
+> ⚠️ **57 ≠ 54**：engineering-lead-3 回传的 54 是 `17+15+22`，正确但**不含他随后在 commit `3e6c622` 追加的
+> `SaveSecurityTests` 3 例** —— 该数字被其自身的后续提交覆盖。以 **EditMode 57 / PlayMode 4** 为准。
+> 首次绿跑后若实际 total ≠ 57，**不要直接改基线数字**，先查差值来源（漏编译的测试程序集 / 被静默跳过的 fixture）。
+
+**三条退出码铁律**（前两条源自 `ci.yml` 既有记录，第三条为本计划新增）：
+1. `run:` 块必须纯 ASCII（PS 5.1 按 GBK 误读 UTF-8 临时脚本 → ParseError 秒退）；
+2. 必须 `Start-Process -Wait`（`Unity.exe` PE Subsystem=2 为 GUI 子系统，`&` 不阻塞 → 秒退 + 垃圾退出码）；
+3. `-runTests` 下 Unity **用退出码表达测试结果**（0=全过／2=有失败／3=运行失败）。
+   **必须区分 2 与 3 并优先解析 XML**，否则「测试失败」与「Unity 崩了」不可分。
+
+### 2.3 第二层：截图基线比对（`LOCAL-CI`，带 GPU，**不带** `-nographics`）
+
+**真实基线路径**（v1.0 此处路径为杜撰，已更正）：磁盘现有 4 个占位
+`Assets/Tests/Baseline/{ink,ink_fog,toon,sorting}_baseline.png.pending`。
+
+| Story | 基线文件 | 采集条件 | 容差 |
+|---|---|---|---|
+| E2-S2 | `sorting_baseline.png` | SortingReview，offset (0,14,14) 固定 | ≥99% 像素通道差 < 2/255 |
+| E1-S2 | `toon_baseline.png` | ToonReview，主光角度固定 | ≥99% 像素通道差 < 2/255 |
+| E1-S2+墨韵 | （并入 `toon_baseline`，`sprint-02-plan.md:73` 要求「并入墨韵回归基线」） | 开墨韵 | ≥99% 像素通道差 < 2/255 |
+| E1-S3 关雾 | `ink_baseline.png` | 雾 OFF，同 S1 采集条件 | **逐像素严格相等（diff == 0）** |
+| E1-S3 开雾 | `ink_fog_baseline.png` | 雾 ON，参数取默认 | ≥99% 像素通道差 < 2/255 |
+
+> **关雾容差已由原文裁定，无需再裁决**：`sprint-02-plan.md:142` 明文「既有墨韵截图基线**逐像素不变**」，
+> ADR-010 亦以「变体剔除生效」为由支撑。故 D1/M4 采用 **diff == 0**，**不适用**派单给出的 99%/2-255 容差
+> （该容差是 §4 S2-R5 为「驱动/平台差异误报」设的，对象是其余三张图）。
+> 若关雾路径做不到严格相等，即证明关雾未真正短路，属应修缺陷而非放宽阈值的理由。
+> —— v1.0 曾把此项列为「待裁决」，现据原文关闭。
+
+**采集纪律**（否则基线必 flaky）：固定 1920×1080、固定 Quality、锁 `Time.captureFramerate`、
+等 shader 编译与资源加载完成再截（≥3 × `WaitForEndOfFrame`）、
+**务必关闭 `FpsProbe` 的 OnGUI 叠加**——它由 `GreyboxBuilder` 自动挂到主相机，
+每帧变化的 FPS 数字会直接毁掉基线，是本工程最现实的 flaky 源。
+
+### 2.4 CI 交付项（需程基岩实现）
+
+| ID | 内容 | 优先级 |
+|---|---|---|
+| `CI-TASK-1` | `ci.yml` 追加 EditMode `-runTests` + XML 解析 + 退出码 0/2/3 分流 | **P0** |
+| `CI-TASK-2` | 追加 PlayMode `-runTests`（无头可行） | **P0** |
+| `CI-TASK-3` | XML 摘要打印到控制台（弱网 runner 不可用 `upload-artifact`，已实测超时） | P1 |
+| `CI-TASK-4` | `LOCAL-CI` 截图基线采集/比对脚本 | P1 |
+| `CI-TASK-5` | 解决 ILPP gRPC 绑定 `localhost:80` 失败致导入卡死（当前**沙箱内无法跑测试的直接原因**） | **P0** |
+
+**8GB 拆两 job（`sprint-02-plan.md` S2-R1 缓解措施的落地）**：
+- `job: editmode`（无图形优先）——编译校验 + EditMode 合并为**同一次 Unity 冷启动**最省内存；
+- `job: playmode`（`needs: editmode`，**串行**）。
+**切勿并行**：同机两个 Unity 实例争抢同一 `Library/` 目录锁，既 OOM 又结果不可信。
+沿用页面文件置 D 盘、放大到 16–24GB。
 
 ---
 
 ## 3. 真机验证项（GTX 950M / Win10 / 1080p，人工签收）
 
-**执行环境固定**：Win10 / 8GB RAM / GTX 950M / 1920×1080 全屏 / Unity 2022.3.62f3c1 / URP 14.0.12。
-每项须留证据（截图或 FpsProbe 读数照片）归档至 `production/qa/evidence/s2/`。
+证据归档至 `production/sprints/evidence/s2/`（路径依 `sprint-02-plan.md:90`）。
 
-| ID | 验证项 | 方法 | 通过判据 | 关联 |
-|---|---|---|---|---|
-| M1 | FPS 实测 · **关雾** | Greybox 场景运行，`FpsProbe` 读数，稳定观察 ≥ 60 秒 | FPS ≥ 58 全程 | D7 |
-| M2 | FPS 实测 · **开雾** | 同上，雾开关 ON | FPS ≥ 58 全程 | D7 |
-| M3 | H3 Toon 视觉初评 | Greybox/SortingReview 目视：明暗二值交界清晰、阴影呈冷灰偏青（`_ShadowTint` 默认 (0.62,0.68,0.72)）、Rim 仅受光侧、**无塑料高光**（`_SpecularOn` 默认关） | 主理人 + 美术签收「符合国风水墨调性」 | C7 |
-| M4 | **关雾墨韵旧基线逐像素不变** | 与 `s1-ink-baseline` 截图比对 | 见 §2.3 容差争议，建议 diff == 0 | D5 |
-| M5 | 深度排序肉眼终验 | SortingReview 场景，前后走位观察遮挡关系 | 无穿插、无闪烁（z-fighting） | B5 |
-| M6 | SRP Batcher 合批确认 | Frame Debugger 查 `SRP Batch` 节点 | Toon 材质进入 SRP Batch | C5 |
-| M7 | 变体数确认 | Shader Inspector → Compile and show code | ≤ 64 | C6（若 C6 自动化落地则可免） |
-
-**M1/M2 记录要求**：须分别记录 **Draw Calls 与 Triangles**（`FpsProbe` 已通过
-`ProfilerRecorder` 采集 `Draw Calls Count` / `Triangles Count`），
-仅记 FPS 不足以定位「开雾掉帧」的根因。
-**注意**：`FpsProbe` 的 OnGUI 叠加本身有开销，作为**一致性偏置**在开/关雾两次测量中同时存在，
-故对**差值比较**无碍，但**绝对值**略偏悲观 —— 这对 ≥58 门槛是保守方向，可接受。
-
----
-
-## 4. 回归基线
-
-### 4.1 GATE-0（前置阻塞动作）—— 补打 `s1-ink-baseline`
-
-**当前 `git tag -l` 为空，该 tag 不存在。** 必须在 E1-S3 动工前完成：
-
-1. 确认 S1 墨韵栈最后一个「已验收」提交（候选：`7b3ef17 S1: foundation scaffold`，
-   但 `b516abf fix: FpsProbe GUI context + camera-relative WASD; add URP pipeline assets`
-   之后墨韵才真正可跑 —— **具体锚点须由程基岩确认**，我不替工程侧拍板）。
-2. 在该 commit 上打 tag：`git tag -a s1-ink-baseline -m "S1 ink stack visual baseline"`。
-3. **在该 tag 检出状态下采集截图基线** `Tests/Baselines/s1-ink-baseline_1920x1080.png`，
-   按 §2.3 采集纪律执行，随后提交入库。
-4. 记录采集环境指纹（GPU 驱动版本、Unity 版本、URP 版本、Quality 等级）到基线同目录
-   `s1-ink-baseline.meta.txt`。**驱动更新会导致像素级差异**，无指纹则日后无法判定「是回归还是环境变了」。
-
-**GATE-0 未完成 ⇒ D5/M4 无法执行 ⇒ E1-S3 不得签收。**
-
-### 4.2 回归套件构成
-
-| 层级 | 内容 | 触发时机 |
-|---|---|---|
-| L1 代码回归 | EditMode 21 用例 + PlayMode 4 用例（无头） | 每次 push / PR |
-| L2 架构红线回归 | C3（R5 零描边）、B4（零每帧成本）、D1/D2（雾职责归属） | 每次 push（属 L1 子集，单独标注因其为「防漂移」性质） |
-| L3 视觉回归 | §2.3 四张截图基线比对 | 每次涉及 shader/渲染的 PR，`LOCAL-CI` 手动触发 |
-| L4 性能回归 | M1/M2 FPS + Draw Calls + Triangles | 每 Story 完成时 + Sprint 末 |
-
-### 4.3 基线更新规则
-
-视觉基线**只能因「有意的视觉变更」而更新**，且须：
-① PR 中附「旧基线 / 新基线 / diff 图」三联；
-② 主理人 + 美术明确签字；
-③ 更新 `*.meta.txt` 环境指纹。
-**严禁**因「测试一直红」而静默覆盖基线 —— 这是视觉回归体系最常见的失效方式。
-
-### 4.4 已修 Bug 的回归补测
-
-S2 内每修一个 Bug，**必须同时提交一个能复现该 Bug 的测试**（红→绿），
-否则该修复不计入「完成」。当前 `production/qa/bugs/` 目录不存在，
-建议随本计划一并建立，Bug 编号格式 `S2-BUG-nnn`。
-
----
-
-## 5. S2-R1~R8 风险验证落点
-
-> **`[推定·待校对]` 全节**：`sprint-02-plan.md §4` 不可读（§0.2 缺口 A），
-> **S2-R1~R8 的原始定义我无从引用**。下表是我依据**代码中实际存在的风险信号**
-> （注释里的红线、兼容性声明、硬件约束）反推的风险清单，编号为**占位**。
-> 上游文档补齐后**必须逐条比对并重新编号**，不可直接采信本表编号映射。
-
-| 占位编号 | 推定风险（依据） | 验证落点 | 验证类型 |
+| ID | 验证项 | 通过判据 | 关联 |
 |---|---|---|---|
-| S2-R1 | **URP 版本漂移**：URP 14.0.12 被误升到 v17 / Unity 6 导致墨韵栈整体崩（`InkRenderFeature.cs` 头部大段单路径兼容声明；README「已钉死，禁止升级」） | 新增 EditMode 断言 `Packages/packages-lock.json` 中 URP 版本 == `14.0.12`；CI 编译校验兜底 | 无头自动 |
-| S2-R2 | **描边职责漂移**：Toon 里偷偷加描边，与墨韵 Pass 重复（R5 红线） | C3 `Shader_HasNoOutlineProperties_R5RedLine` | 无头自动（已有） |
-| S2-R3 | **雾职责漂移**：雾实现进 Toon 而非墨韵全屏 Pass（`ToonGuofeng.shader:12`、`ToonGuofengLighting.hlsl:70`） | D1 + D2 新增红线测试 | 无头自动（待建） |
-| S2-R4 | **深度排序轴符号错误**：ADR-009 示例 `(0,1,1)` 与正文 `-offset.normalized` 矛盾（`DepthSortTests.cs:9-12`） | B1/B2 断言 + B5 肉眼终验；并回写修正 ADR-009 | 无头自动 + 真机 |
-| S2-R5 | **950M 性能不达标**：开雾后掉出 58 FPS | M1/M2（含 Draw Calls/Triangles 对比） | 真机 |
-| S2-R6 | **8GB 机器 CI OOM**：多次 Unity 启动叠加爆内存 | §2.4 拆 job + 串行 + 页面文件 16–24GB；观察 CI 连续 10 次绿 | CI 观测 |
-| S2-R7 | **CI 假绿**：Unity GUI 子系统退出码陷阱 / `-runTests` 退出码 2 vs 3 未分流，测试失败被当成功（`ci.yml` 已记录两条铁律） | §2.2 退出码分流 + **强制解析 XML**；故意注入一个失败用例做**门控自检**（验证门控真的会红） | CI 自检 |
-| S2-R8 | **视觉基线 flaky**：FpsProbe OnGUI 叠加 / 未等 shader 编译完 / 分辨率漂移导致截图比对随机红 | §2.3 采集纪律；新基线须**连续 3 次采集互相 diff == 0** 方可入库 | LOCAL-CI |
+| M1 | FPS · **关雾** | ≥ 58 全程（≥60s 观察） | H2 底线 |
+| M2 | FPS · **开雾** | ≥ 58 全程 | H2 底线 / S2-R2 |
+| M3 | 墨韵栈耗时（含雾） | < 3ms，雾增量 < 0.5ms | D11 / S2-R2 |
+| M4 | **关雾墨韵旧基线逐像素不变** | **diff == 0**（对 `s1-ink-baseline` tag 采集的 `ink_baseline.png`） | D1 硬验收 |
+| M5 | 开雾观感：低洼墨气、高台清透、天空不糊死 | 目视 + `ink_fog_baseline.png` | D10 |
+| M6 | 深度排序肉眼终验 | 无穿插、无 z-fighting；组合体不互穿 | B5/B6 |
+| M7 | SRP Batcher 合批 | Toon 材质进入 SRP Batch | C5 |
+| M8 | 变体数 | ≤ 64 | C4 |
+| M9 | 无新增 Pass/Blit | Frame Debugger 全屏 Pass 数与 S1 持平 | D2 / C2 |
+| M10 | H3 Toon 观感初评 | 主理人+美术记录印象（**非出门条件**，见 §1.3 C8） | 试玩窗口 |
 
-**特别强调 S2-R7 的门控自检**：门禁至今是骨架（§0.2 缺口 C），
-首次接实后**必须故意让一个用例失败**，确认 CI 真的变红。
-未经自检的门控等同于没有门控 —— 这是本 Sprint 最高优先级的 QA 动作。
+**M1/M2 必须同时记录 Draw Calls 与 Triangles**（`FpsProbe` 已用 `ProfilerRecorder` 采集）——
+仅记 FPS 无法定位「开雾掉帧」根因。`FpsProbe` 的 OnGUI 开销在开/关雾两次测量中同时存在，
+对**差值**无碍，对**绝对值**偏悲观，对 ≥58 门槛属保守方向，可接受。
+
+**灯光数量必须固定**：`ToonGuofengLighting.hlsl:63` 记「950M 上限 1–3 盏点光（性能契约§5）」，
+灯光数不固定则 M1/M2 不可比。
+
+---
+
+## 4. 回归基线与回退
+
+| 层 | 内容 | 触发 |
+|---|---|---|
+| L1 代码回归 | EditMode 全量 + PlayMode 4 例（无头） | 每次 push / PR |
+| L2 架构红线 | C2（R5 零描边）、B4（零每帧）、D2（单 Pass/Blit 序列）、D6（先晕染后勾线） | 每次 push（L1 子集，单列因属「防漂移」） |
+| L3 视觉回归 | §2.3 四张基线 | 涉渲染的 PR，`LOCAL-CI` 手动触发 |
+| L4 性能回归 | M1/M2/M3 + Draw Calls/Triangles | 每 Story 完成 + Sprint 末 |
+
+**回退 tag**：`s1-ink-baseline`（**已存在**）。对应 `sprint-02-plan.md` S2-R3 缓解措施「改动前打 tag，回退即还原」。
+E1-S3 是 S2 唯一改动 S1 已验证代码的 Story，若 M4 不过 → 直接回退至该 tag。
+
+**基线采集与更新规则**：
+1. 4 张 `.pending` 需真机采集后替换为真图，走 **Git LFS**；
+2. 新基线须**连续 3 次采集互相 diff == 0** 方可入库（防收编 flaky 基线）；
+3. 同目录留 `*.meta.txt` 记录环境指纹（GPU 驱动版本 / Unity / URP / Quality 等级）——
+   驱动更新会造成像素级差异，无指纹则日后无法区分「回归」与「环境变了」；
+4. 视觉基线**只因有意的视觉变更**更新，PR 附「旧/新/diff」三联 + 主理人与美术签字。
+   **严禁因「测试一直红」静默覆盖基线**——这是视觉回归体系最常见的失效方式。
+
+**Bug 回归**：S2 内每修一个 Bug 必须同时提交一个能复现该 Bug 的测试（红→绿），否则不计「完成」。
+建议建立 `production/qa/bugs/`，编号 `S2-BUG-nnn`。
+
+---
+
+## 5. S2-R1~R8 风险验证落点（**按 `sprint-02-plan.md §4` 原文，非推定**）
+
+| # | 风险（原文摘要） | 概率/影响 | 验证落点 | 类型 |
+|---|---|---|---|---|
+| **S2-R1** | 8GB 内存：编辑器+PlayMode+截图基线同跑触顶换页，CI 变慢/超时 | 高/中 | §2.4 拆两 job **串行**；页面文件 16–24GB；基线钉 1080p 单帧不做多分辨率矩阵；观察 CI 连续 10 次绿 | CI 观测 |
+| **S2-R2** | 950M fill-rate：雾并入后单 Pass 指令数增加，栈耗时逼近 3ms | 中/高 | **M3**（<3ms，雾增量<0.5ms）+ M1/M2；超线则启用既有「半分辨率」预案（E1-S6 提前），**不拆第二条 Pass** | 真机 |
+| **S2-R3** | 墨韵集成冲突：E1-S3 改 `InkFullscreen.shader`/`InkRenderFeature.cs`，是唯一可能破坏 S1 已验证行为的点 | 中/高 | **M4 关雾 diff==0（硬验收）** + D1/D2 源码门控；回退 tag `s1-ink-baseline` 已就位 | 真机 + 无头 |
+| **S2-R4** | 双描边复发：Toon 若被加几何描边与墨线叠加脏化（R5） | 低/中 | **C2** `Shader_HasNoOutlineProperties_R5RedLine`（已有，无头）+ `toon_baseline` 勾线区域比对 | 无头 + LOCAL-CI |
+| **S2-R5** | 截图基线脆弱：驱动/平台差异致像素比对误报红 | 中/中 | 容差 ≥99% 像素差 <2/255（**仅对非 D1 的三张**）；基线只在自托管固定机生成与比对；§4 环境指纹 + 连续 3 次 diff==0 入库 | LOCAL-CI |
+| **S2-R6** | `JsonUtility` 表达力不足（字典/多态）致存档 schema 返工 | 低/中 | A1/A4/A5 迁移链测试守护；确需字典时按 ADR-007 升级 Newtonsoft，**migration 链兜底旧档**（补一条「v1 旧档在新序列化器下仍可读」回归） | 无头 |
+| **S2-R7** | CI 无头无法渲染截图（`-nographics`） | 中/中 | 渲染类断言进**带 GPU 的 PlayMode job（不带 `-nographics`）**；纯逻辑断言留 EditMode 无头。**注意**：`DepthSortTests` 属纯状态断言，应留在无头层，勿误划入 GPU job（§0.1 缺口 D） | CI 结构 |
+| **S2-R8** | AesGcm 类 API 误用（Mono 不稳） | 低/高 | ✅ **已固化为测试**：`SaveCrypto_DoesNotUseAesGcmOrChaCha20`（禁用项 + 批准项 `CipherMode.CBC`/`HMACSHA256` 双向断言），评审约束不再只靠人眼 | 无头（已落成） |
+
+**新增 QA 动作 `S2-R7-SELFTEST`（最高优先级）**：门禁至今是骨架（§0.1 缺口 C）。
+`CI-TASK-1/2` 接实后**必须故意注入一个失败用例，确认 CI 真的变红**。
+**未经自检的门控等同于没有门控**——这是本 Sprint 最高优先级的 QA 动作。
 
 ---
 
 ## 6. 已知环境限制
 
-### 6.1 沙箱 / 无头环境限制
-
-| 限制 | 影响范围 | 处置 |
+| 限制 | 影响 | 处置 |
 |---|---|---|
-| 当前 CI 为 `-batchmode -nographics`，**无 GPU 上下文** | 所有截图类测试（§2.3 全部四张基线）、FPS 实测、Frame Debugger、SRP Batcher 查看 | **必须本机带图形会话补跑**，标注 `LOCAL-CI`；不得进无头门控 |
-| `-nographics` 下部分渲染 API 返回空/默认值 | 任何 `Camera.Render()` + `ReadPixels` 组合 | 禁止在无头用例中使用；若误用会**静默返回全黑图**而非报错，极具欺骗性 |
-| `ShaderUtil.*` 属 `UnityEditor` 命名空间 | C1~C4、C6、D3 | **仅能在 EditMode 跑**（`MJ.Tests.EditMode.asmdef` 已正确设 `includePlatforms: ["Editor"]` 并引用 `UnityEditor.TestRunner`），不可移入 PlayMode |
-| PlayMode 用例**不受**无 GPU 限制 | B1~B4 | 见 §0.2 缺口 D，应进 CI |
+| **ILPP gRPC 绑定 `localhost:80` 失败 → 资源导入卡死** | 沙箱内**任何**测试都跑不了（`editmode-w2-run.log` 停在 AssetDatabase Refresh） | `CI-TASK-5` **P0**；W2 证据必须在真机/自托管 runner 补跑 |
+| 无头 `-nographics` 无 GPU 上下文 | 四张截图基线、FPS、Frame Debugger、SRP Batcher | 走 `LOCAL-CI` / §3，不进无头门控 |
+| `-nographics` 下 `Camera.Render()+ReadPixels` **静默返回全黑图**而非报错 | 极具欺骗性的假绿 | 无头用例中**禁用**该组合 |
+| `ShaderUtil.*` 属 `UnityEditor` 命名空间 | C1~C4、D2~D9 | 仅 EditMode（`MJ.Tests.EditMode.asmdef` 已正确设 `includePlatforms:["Editor"]`），不可移入 PlayMode |
+| PlayMode 用例不受无 GPU 限制 | B1~B4 | 应进无头 CI |
+| 8GB 物理内存 | CI | 两 job 串行；页面文件 16–24GB |
+| GTX 950M | 性能契约 1–3 盏附加点光 | FPS 场景固定灯光数 |
+| 弱网 runner | `game-ci/unity-builder`、`upload-artifact@v4` 均实测 100s 超时 ×3 | 结果只打印控制台 + 落盘，**不引入新 Marketplace action** |
 
-### 6.2 硬件限制
-
-- **8GB 物理内存**：CI 拆两 job 串行（§2.4）；页面文件置 D 盘 16–24GB。
-- **GTX 950M**：性能契约上限「1–3 盏附加点光」（`ToonGuofengLighting.hlsl:63` 注释「950M 上限 1–3 盏点光，性能契约§5」）。
-  FPS 测试场景**须固定灯光数量**，否则 M1/M2 不可比。
-- **弱网 runner**：已实测 `game-ci/unity-builder` 与 `actions/upload-artifact@v4` 均 100s 超时 ×3 失败。
-  → 测试结果**只能打印到控制台 + 落盘 `D:\`**，**不得**引入新的 Marketplace action（`CI-TASK-3`）。
-
-### 6.3 测试稳定性（flaky）纪律
-
-- 任何用例连续 3 次运行中出现 ≥1 次结果不一致，即判定为 **flaky**，
-  **立即用 `[Ignore("S2-BUG-nnn flaky")]` 隔离并开 Bug**，不允许留在门控里污染 CI 信号。
-- 隔离的用例必须挂 Bug 号并在 Sprint 末复盘，**禁止长期挂起**。
-- 当前已识别的最高 flaky 风险源：**`FpsProbe` 的 OnGUI 每帧变化数字**（§2.3）与
-  **shader 首次编译耗时**（截图早于编译完成 → 粉色/黑色画面）。
+**flaky 纪律**：任一用例连续 3 次运行出现 ≥1 次结果不一致即判 flaky，
+**立即 `[Ignore("S2-BUG-nnn flaky")]` 隔离并开 Bug**，不允许污染 CI 信号；隔离项须挂 Bug 号并在 Sprint 末复盘，禁止长期挂起。
+当前最高 flaky 风险源：`FpsProbe` OnGUI 每帧数字、shader 首次编译未完成即截图（粉/黑画面）。
 
 ---
 
-## 7. S2 质量门初步判定
+## 7. S2 质量门判定
 
 | 维度 | 判定 | 理由 |
 |---|---|---|
-| E0-S5 存档 | **PASS** | 17/17 通过，覆盖 ADEQUATE（正常/篡改/截断/迁移/原子性） |
-| E1-S2 Toon（无头部分） | **PASS** | 4/4 通过，含 R5 红线守卫；C5~C7 真机项待做 |
-| E2-S2 深度排序 | **CONCERNS** | 用例质量好且无头可跑，但**尚未在 CI 中执行过**（无 `playmode-results.xml`），B5 真机终验未做 |
-| E1-S3 墨韵雾 | **N/A** | 代码未落地 |
-| **CI 门控体系** | **FAIL** | `ci.yml` **无任何 `-runTests`**，门禁仍是骨架；`s1-ink-baseline` tag 不存在 |
-| **文档基线** | **FAIL** | `production/` 与 `docs/` 整棵树缺失，验收标准与 ADR 不可追溯 |
+| E0-S5 存档（W1 部分） | **PASS** | 17/17 绿，覆盖 ADEQUATE |
+| E0-S5 CI 密钥注入（W2） | **CONCERNS** | A10 缺口已由 `SaveSecurityTests` 闭合且断言前提实测成立，但**该测试自身尚无绿色证据**；A11「CI 日志不回显 Secret」仍未覆盖 |
+| E1-S2 Toon | **CONCERNS** | W1 4 例绿；W2 扩至 15 例后**无绿色证据** |
+| E2-S2 深度排序 | **CONCERNS** | 实现与 ADR-009 一致且用例质量好；`DOC-BUG-1` 已修（`16e3853`），验收标准不再误导；但**从未在 CI 执行过** |
+| E1-S3 墨韵雾 | **CONCERNS** | 测试设计 ADEQUATE（18 方法，红线覆盖到位），但**无绿色证据**；ADR-010 偏差待批 |
+| **测试证据链** | **FAIL** | 唯一 XML 是 W1 口径 `total=21`，早于两个 W2 提交；W2 运行卡死未产出 XML |
+| **CI 门控体系** | **FAIL** | `ci.yml` 无任何 `-runTests`，门禁仍是骨架，且从未自检 |
 
-### 综合判定：**CONCERNS（趋向 FAIL，取决于两项阻塞能否在 S2 内清掉）**
+### 综合判定：**CONCERNS（趋向 FAIL）**
 
-**代码与测试本身质量是好的**——21/21 绿、断言扎实、红线守卫思路正确。
-问题**不在代码，在于「验证体系」尚未闭环**：
+**代码与测试设计本身是可信的**——红线守卫思路正确（R5 零描边、C2 单 Pass、雾职责门控、URP14 API 选型），
+E1-S3 把「关雾零回归」拆成源码级 + 像素级两层尤其专业。
+**问题不在代码，在验证体系未闭环**：写了大量好测试，却没有任何一条在 W2 之后被真正执行过。
 
-**两个 FAIL 必须清掉，否则 S2 不建议签收：**
-1. **CI 接实测试执行**（`CI-TASK-1/2`）+ **门控自检**（S2-R7）。
-   现状是「测试写了但 CI 不跑」，等于**靠人自觉**，一次遗忘就前功尽弃。
-2. **补打 `s1-ink-baseline` tag 并采集基线截图**（GATE-0）。
-   不做这一步，E1-S3 的核心验收项 D5/M4 **物理上无法执行**。
+**签收前必须清掉的三项：**
+1. **`CI-TASK-5`**：修复 ILPP 导入卡死 —— 否则一切测试无从谈起（P0，前置于 2、3）。
+2. **`CI-TASK-1/2` + `S2-R7-SELFTEST`**：CI 接实并自检变红。现状「测试写了但 CI 不跑」等于靠人自觉。
+3. **W2 全量绿跑 + 4 张基线真机采集**，并以实际 total 重钉基线数字（弃用 21/21）。
 
-**文档缺口（缺口 A）**属主理人裁决范围：可接受「S2 内补齐」，
-但**在补齐前，本计划 §1 与 §5 中所有 `[推定·待校对]` 项不得作为正式验收依据**。
-
----
-
-## 8. 待主理人审批 / 裁决事项
-
-1. **[裁决] D5 容差**：关雾墨韵基线用「逐像素严格相等」（QA 建议）还是派单原定的「≥99% 像素差 <2/255」？（§2.3）
-2. **[裁决] 缺口 A**：`production/` 与 `docs/` 整树缺失，是「本就未产出」还是「丢失需恢复」？S2 内是否补齐？
-3. **[指派] GATE-0**：`s1-ink-baseline` 的锚点 commit 需程基岩确认（`7b3ef17` 还是 `b516abf`？）
-4. **[指派] CI-TASK-1~4**：需程基岩实现，QA 提供判据与自检用例。
-5. **[确认] S2-R1~R8**：请提供风险原文，我据以重编 §5 映射表。
-6. **[建议采纳与否] 新增无头红线测试**：C6 变体数自动化、D1/D2 雾职责红线、S2-R1 URP 版本钉死断言 —— 三项成本低、回归价值高。
+**`DOC-BUG-1` 须在验收前修正**，否则 E2-S2 会被按错误标准误判。
 
 ---
 
-*本计划所有结论可追溯至仓库实际文件与 `TestResults/editmode-results.xml`。
-凡标注 `[推定·待校对]` 者均因上游文档不可读，需补齐后校对，QA 不臆造验收点。*
+## 8. 待主理人裁决 / 指派
+
+| # | 事项 | QA 建议 |
+|---|---|---|
+| 1 | **[裁决] ADR-010 keyword 偏差**（`multi_compile_local_fragment` vs `shader_feature_local`） | **建议批准并回写 ADR-010**：理由成立，且加强而非削弱「关雾逐像素不变」（§0.2 `QA-NOTE-1`）。engineering-lead-3 已同意，**仅剩回写 ADR 一步** |
+| 2 | ~~**[指派] `DOC-BUG-1`** 轴符号笔误~~ | ✅ **已关闭**（commit `16e3853`，QA 已复核两行修复到位） |
+| 3 | **[指派] `CI-TASK-5`** ILPP gRPC 导入卡死 | **P0，阻塞全部测试证据**（当前唯一真正的拦路石） |
+| 4 | **[指派] `CI-TASK-1/2/3`** + 门控自检 | 程基岩实现，QA 提供判据与自检用例 |
+| 5 | ~~**[批准] 补测**：A10 密钥不入库、S2-R8 禁 AesGcm~~ | ✅ **已关闭**（commit `3e6c622`，QA 已复核断言前提成立、非空断言） |
+| 5b | **[批准] 剩余补测**：A11「CI 日志不回显 Secret」、S2-R6 旧档兼容回归 | 均低成本；A11 在 `ci.yml` 侧用 `Select-String` 自检即可，无需 Unity |
+| 6 | **[确认] H3 观感口径** | 按 `sprint-02-plan.md:88`，H3 为 ⏳ 非出门条件，不得阻塞 E1-S2 签收 |
+| 7 | **[提示] P2 E0-S6 遥测**（3 SP）是否纳入 S2 | 若纳入，QA 需补相应验收；当前未见实现 |
+| 8 | **[提示] 未跟踪探针文件归属** | `mijing-fanchen/` 下 `.qa_probe*.txt` / `.qa_progress.txt` / `.qa_run_exit.txt` **非本人产物**（我的临时文件在仓库外 `D:\WBzone\Game\`，已清理）。疑似 quality-lead-2 的工作文件，已去信确认，建议由其本人清理或加 `.gitignore` |
+
+> **已关闭事项**：v1.0 的「关雾容差待裁决」——`sprint-02-plan.md:142` 原文已明确「逐像素不变」，按 diff==0 执行，无需再裁决。
+
+---
+
+*本计划全部结论可追溯至仓库实际文件、`TestResults/editmode-results.xml` 根节点属性、`git tag -l` 与 `git log`。
+凡与上游文档冲突处均已注明出处与行号，并给出以哪一方为准的判断依据。*

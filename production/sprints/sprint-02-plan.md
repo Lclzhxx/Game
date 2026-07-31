@@ -94,7 +94,7 @@
 ### E2-S2 · Y-Z 深度排序 — 5 SP
 
 **目标**：斜 45° 下透明队列物体（面片/特效/组合角色）无穿插错排（C4）。
-**技术方案**：见 **ADR-009**（`TransparencySortMode.CustomAxis`，轴由 `CameraRig.offset` 推导 `(0,1,1).normalized`；组合体挂 `SortingGroup`；不透明物一律走深度缓冲，禁止为排序改透明队列）。
+**技术方案**：见 **ADR-009**（`TransparencySortMode.CustomAxis`，轴由 `CameraRig.offset` 推导 `(-offset).normalized` ≈ `(0,-0.7071,-0.7071)`（ADR-009 §符号推导：初稿 `(0,1,1)` 为符号笔误，误用会导致前后绘制次序整体反转）；组合体挂 `SortingGroup`；不透明物一律走深度缓冲，禁止为排序改透明队列）。
 **衔接**：全新（灰盒仅概念）；E2-S3 gizmo 可视化在 S3，不含。
 
 **拆分子任务**
@@ -111,7 +111,7 @@
 - `Assets/Tests/PlayMode/DepthSortTests.cs`（新建）
 
 **验收标准**
-- ✅ 相机状态断言：`transparencySortMode == CustomAxis` 且轴 ≈ `(0, 0.7071, 0.7071)`（随 offset 推导，PlayMode 测试，CI 可跑——纯状态断言不需渲染输出）。
+- ✅ 相机状态断言：`transparencySortMode == CustomAxis` 且轴 ≈ `(0, -0.7071, -0.7071)`（= -offset.normalized，随 offset 推导，PlayMode 测试，CI 可跑——纯状态断言不需渲染输出）。
 - ✅ 无穿插：SortingReview 场景截图基线通过；肉眼复核前后站位透明面片遮挡关系正确（C4 Pass）。
 - ✅ 组合体完整：SortingGroup 组合体整体前后移动无构件互穿。
 - ✅ 零每帧成本：Profiler 无新增每帧脚本开销（Bootstrap 只在初始化执行）。

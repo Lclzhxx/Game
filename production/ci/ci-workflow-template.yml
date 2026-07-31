@@ -1,0 +1,51 @@
+# =============================================================
+# 文件名：ci-workflow-template.yml
+# 用途：GitHub Actions 自动构建模板（给工程侧用，非程序员无需理解内容）
+# 作用：每次上传代码后，自动用固定版本的 Unity 打开工程、打出游戏包、
+#       并跑一次"能不能打开/帧率是否达标"的冒烟测试，防止哪天误用错版本 Unity 把工程搞崩。
+# 用法：把本文件复制到游戏工程仓库的 .github/workflows/ 目录下，按注释改 3 处即可。
+# =============================================================
+
+name: Build & Smoke Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    # 自托管 runner（你自己的机器或一台专用构建机），避免云端拉到非 2022.3 的 Unity
+    runs-on: self-hosted
+
+    steps:
+      # 1) 拉取代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) 用【固定版本】Unity 2022.3 打开工程并构建（版本钉死，杜绝版本漂移）
+      #    ↓↓↓ 改这里 ①：把 2022.3.62f1 换成你实际安装的 2022.3 小版本号
+      - name: Build with GameCI
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          unityVersion: 2022.3.62f1
+          targetPlatform: StandaloneWindows64
+          buildMethod: UnityBuilderAction.BuildPlayer.Default
+
+      # 3) 冒烟测试占位：工程侧接入后，这里跑"打开游戏→读 FPS 探针→断言 ≥58"的脚本
+      #    ↓↓↓ 改这里 ②：接入 quality-lead 提供的自动化 playtest 脚本路径
+      - name: Smoke Test (H2 frame-rate gate)
+        run: echo "TODO: 接入 playtest 脚本，断言 FPS >= 58"
+
+      # 4) 上传构建产物，方便你直接下载试玩
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: game-build
+          path: build/
+
+      # ↓↓↓ 改这里 ③：如需钉死 URP 包版本，在仓库根 manifest.json 里把
+      #      "com.unity.render-pipelines.universal" 固定为 14.x（与 2022.3 匹配）

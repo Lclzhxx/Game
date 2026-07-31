@@ -60,3 +60,8 @@ _ci_repro.log
 .qa_run_exit.txt
 Assets/~UnityDirMonSyncFile~*
 *.qabak
+
+# QA / git 工具额外临时文件（2026-07-31 补：根目录探针与 git 排障日志）
+.qa_proc*
+.qa_run*.log.txt
+_git_*.log

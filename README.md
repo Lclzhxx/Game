@@ -2,7 +2,7 @@
 
 > 2.5D 国风修仙 RPG —— 《秘境·凡尘》生产工程（Sprint 1 地基）。
 > 引擎：**Unity 2022.3.62 LTS**（中国区 `2022.3.62f3c1`，API 等价国际 `f1`），
-> 渲染管线：**URP 14.0.6**（已钉死，禁止升级到 v17 / Unity 6）。
+> 渲染管线：**URP 14.0.12**（已钉死，禁止升级到 v17 / Unity 6）。
 
 ## 一句话说明
 本仓库是游戏的 Unity 工程（非工作区文档）。当前处于 **S1 地基阶段**：仅含工程脚手架、
@@ -33,7 +33,7 @@ Assets/
     Enemy/       DummyEnemy.cs              (C 灰盒占位，待重构)
   Shaders/       InkFullscreen.shader
   Art/ Audio/ Resources/ Settings/          (后续资产/配置目录，先占位)
-Packages/        manifest.json  (URP 14.0.6 钉死)
+Packages/        manifest.json  (URP 14.0.12 钉死)
 ProjectSettings/
 .github/workflows/ci.yml  (自托管 GameCI 构建 + 门禁骨架)
 ```

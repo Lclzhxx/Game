@@ -52,3 +52,31 @@
 - ⚠️ `InkFullscreen.shader` 职责变厚（勾线+纸纹+雾）——用 HLSL 函数分段 + 注释分区管理；若未来再并入第 4 个效果，须重开 ADR 评估拆分。
 - ⚠️ 雾作用于全屏源色，**发生在 Toon 光照之后**：逐材质的精细雾（如仅某物体免疫雾）不支持——接受，个别演出需求走 ADR-008 预留的 no-op 钩子（v2）。
 - ⚠️ 墨韵回归基线图 +1 张，基线管理成本微增。
+
+## 实施记录（E1-S3，S2·W2）
+
+### 与本 ADR 原文的一处偏差 —— 待主理人裁定
+
+| 项 | ADR 原文 | 实施 | 理由 |
+|---|---|---|---|
+| keyword 声明方式 | `#pragma shader_feature_local _MJ_HEIGHT_FOG` | `#pragma multi_compile_local_fragment _ _MJ_HEIGHT_FOG` | `shader_feature` 的变体入包依据是**材质资产落盘时的 keyword 状态**。本雾的 keyword 由 `InkRenderFeature` 在 **Execute 里运行时** `CoreUtils.SetKeyword` 开关，材质资产上永远是关的 → 构建期 `_MJ_HEIGHT_FOG` 变体会被剥掉，**编辑器里开雾正常、真机出包无效**（典型的"编辑器绿、真机黑"）。`multi_compile` 固定编译 2 个变体，关雾变体与 S1 完全同构，关雾态零成本不变；代价仅是变体数 ×2（本 shader 无其他 multi_compile，绝对量 = 2）。 |
+
+裁定选项：
+1. **接受偏差**（推荐）——按上表改 ADR 正文，成本 0。
+2. **回退 `shader_feature_local`** —— 则必须改为「在墨韵材质资产上落盘 keyword，Feature 只读不写」，
+   意味着开关雾要改材质资产（不能在 Renderer Feature Inspector 上勾），操作手感变差且与「参数集中在 Feature」的既有约定冲突。
+
+### 实施细节增补
+
+- 参数落地为 6 个：`_FogColor` / `_FogBaseHeight` / `_FogDensity` / `_FogHeightFalloff` / `_FogDistFade` / `_FogSkyBlend`。
+- 世界坐标重建统一走 Core RP `ComputeWorldSpacePosition(uv, rawDepth, UNITY_MATRIX_I_VP)`（URP14 里 `UNITY_MATRIX_I_VP` 即 `unity_MatrixInvVP`），不手搓矩阵、不写版本宏（C5）。
+- `HeightFogSettings` **独立成文件**（`Assets/Scripts/Rendering/HeightFogSettings.cs`）而非嵌套在 `InkRenderFeature` 内：
+  嵌套类型会迫使 EditMode 测试程序集连带引用 URP 程序集（CS0012），独立后测试只依赖 `MJ.Runtime`。
+- `Guard()` 刻意 `public static`：既是运行时防护，也是 EditMode 参数化断言的入口。
+- Volume 低饱和冷调固化为 `Assets/Settings/InkGuofeng_PostProcess.asset`
+  （ColorAdjustments saturation −22 / contrast +6 / colorFilter 0.94,0.97,1.0；WhiteBalance temperature −12 / tint +2；Tonemapping Neutral）。
+  与雾无代码耦合，符合本 ADR「只做参数联调」的定位。
+- C2 红线由 `HeightFogTests.InkRenderFeature_BlitSequenceUnchangedFromS1_C2RedLine` 做**源码级计数守卫**
+  （去注释后 `GetTemporaryRT`×1 / `cmd.Blit(`×2 / `ReleaseTemporaryRT`×1 / `EnqueuePass(`×1 / `: ScriptableRenderPass`×1），
+  任何人日后偷偷加第二条 Pass 会直接红在 CI 上。
+- 回退点：`git tag s1-ink-baseline`（E1-S3 动工前的 S1 已验证墨韵栈）。

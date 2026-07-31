@@ -20,6 +20,10 @@
 //   - inkMaterial：通过菜单【Greybox/Create Ink Material】生成材质后，拖到此字段。
 //   - lineThickness / lineStrength / paperStrength / feibaiThreshold / inkStainStrength：调参用。
 //   - enabled：是否启用墨韵效果。
+//   - heightFog：高度雾子块（E1-S3 / ADR-010）。enabled 打勾即开雾；
+//     雾是【本 Pass 内 keyword 门控的前置阶段】，不是第二条全屏 Pass——
+//     Execute 里的「GetTemporaryRT + 2 次 Blit + ReleaseTemporaryRT」序列与 S1 完全一致，
+//     C2「严禁多 Pass 叠加」由此守住（EditMode 测试 HeightFogTests 对本文件做源码级 Blit 计数守卫）。
 // 着色器约定：InkFullscreen.shader 采样 _SourceTex（由本 Pass 经 SetGlobalTexture 喂入的"源屏幕色"），
 //            深度来自 _CameraDepthTexture（由 ConfigureInput(Depth) 提供）。
 // =============================================================
@@ -46,6 +50,9 @@ public class InkRenderFeature : ScriptableRendererFeature
         [Range(0f, 2f)]  public float inkStainStrength = 0.6f; // 墨渍强度
 
         public bool enabled = true;
+
+        [Header("高度雾（E1-S3 / ADR-010）—— 并入本 Pass，零新增 Pass/Blit")]
+        public HeightFogSettings heightFog = new HeightFogSettings();
     }
 
     public InkSettings settings = new InkSettings();
@@ -113,6 +120,12 @@ public class InkRenderFeature : ScriptableRendererFeature
             mat.SetFloat("_PaperStrength", m_Settings.paperStrength);
             mat.SetFloat("_FeibaiThreshold", m_Settings.feibaiThreshold);
             mat.SetFloat("_InkStainStrength", m_Settings.inkStainStrength);
+
+            // 高度雾参数 + keyword 同步（E1-S3 / ADR-010）。
+            // 【注意】这里只改材质状态，不新增任何 Pass / RT / Blit —— C2 红线由下面的
+            // "GetTemporaryRT + 两次 Blit + ReleaseTemporaryRT" 序列保持原样来保证。
+            if (m_Settings.heightFog != null)
+                m_Settings.heightFog.ApplyTo(mat);
 
             CommandBuffer cmd = CommandBufferPool.Get("InkRenderPass");
             int tempID = Shader.PropertyToID("_InkTempRT");

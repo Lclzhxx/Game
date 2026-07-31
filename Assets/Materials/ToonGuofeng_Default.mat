@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ToonGuofeng_Default
+  m_Shader: {fileID: 4800000, guid: a994eb4b480ad1a9ae07fc8bde48fedc, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BrushNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RampTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BrushStrength: 0.3
+    - _RampBands: 2
+    - _RampSoftness: 0.06
+    - _RampThreshold: 0.5
+    - _RimIntensity: 0.35
+    - _RimLightSideMask: 1
+    - _RimPower: 4
+    - _SpecIntensity: 0.5
+    - _SpecSoftness: 0.02
+    - _SpecThreshold: 0.92
+    - _SpecularOn: 0
+    - _UseBrushNormal: 0
+    - _UseRampTex: 0
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor: {r: 0.9, g: 0.88, b: 0.82, a: 1}
+    - _ShadowTint: {r: 0.62, g: 0.68, b: 0.72, a: 1}
+    - _SpecTint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []

@@ -4,6 +4,7 @@
 > 版本：**v2.0**（取代 v1.0；v1.0 的 §1/§5 建立在「上游文档缺失」的错误前提上，本版已按原文校对重写）
 > 核查日期：2026-07-31 · 核查 HEAD：`3099d5e` · 工作树：**clean**（W1+W2 全部已 commit，未 push）
 > 目标工程：`D:\WBzone\Game\mijing-fanchen`（Unity 2022.3.62f3c1 / URP 14.0.12）
+> 里程碑：**S2 W2 制作 + CI 测试门控于 2026-08-03 全绿收口（EditMode 57/57）** —— 详见 §7。
 
 ---
 
@@ -36,7 +37,7 @@ v1.0 成文时判定 `production/` 与 `docs/` 整树缺失，据此把 §1 验�
   W2 后测试属性数已增至 **SaveService 17 + Toon 15 + HeightFog 22**，21 这个数字**不再是通过基线**。
   唯一的 W2 运行尝试 `editmode-w2-run.log` 停在 `Application.AssetDatabase Initial Refresh Start` 即中断，
   **未产出 XML**（与 engineering-lead-3 报告的 ILPP gRPC 绑定 `localhost:80` 失败致导入卡死一致）。
-  → **S2 当前不存在可签收的测试证据。**
+  → **S2 当前不存在可签收的测试证据。**（**2026-08-03 更新**：已被首轮绿 CI 推翻——EditMode 57/57 全绿，S2 现已有可签收测试证据，详见 §7。）
 
 - **`DOC-BUG-1`（✅ **已修复**，commit `16e3853`）—— `sprint-02-plan.md` 的 E2-S2 验收标准曾写反排序轴符号，会导致「正确实现被判 FAIL」。**
   已复核修复结果：`:97` 现为 `(-offset).normalized ≈ (0,-0.7071,-0.7071)` 并注明初稿 `(0,1,1)` 为符号笔误；
@@ -83,7 +84,7 @@ v1.0 成文时判定 `production/` 与 `docs/` 整树缺失，据此把 §1 验�
 | A7 | 原子写盘、不留 `.tmp`、轮转 `.bak` | `Save_LeavesNoTmpFile_AndRotatesBak` | EditMode | ✅ | ❌ | W1 绿 |
 | A8 | 槽位不存在 → NotFound | `Load_MissingSlot_ReturnsNotFound` | EditMode | ✅ | ❌ | W1 绿 |
 | A9 | 截断/空文件健壮性 | `CorruptLength_IsRejectedWithoutThrow` | EditMode | ✅ | ❌ | W1 绿 |
-| **A10** | **密钥不进仓库：仓库 grep 不到密钥字面量** | `Repo_GeneratedSaveSecret_IsGitIgnored`、`Repo_NoCommittedKeyLiteral` ✅ 已补 | EditMode | ✅ | ❌ | **未跑** |
+| **A10** | **密钥不进仓库：仓库 grep 不到密钥字面量** | `Repo_GeneratedSaveSecret_IsGitIgnored`、`Repo_NoCommittedKeyLiteral` ✅ 已补 | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
 | **A11** | CI 日志不回显 Secret | **仍无自动化覆盖** ⚠️ | — | — | — | **残留缺口** |
 
 **判定：ADEQUATE。A10 缺口已由 `SaveSecurityTests.cs`（commit `3e6c622`）闭合。**
@@ -107,14 +108,14 @@ v1.0 成文时判定 `production/` 与 `docs/` 整树缺失，据此把 §1 验�
 
 | # | 验收标准 | 测试用例 | 平台 | 无头 | 需 GPU | 现状 |
 |---|---|---|---|---|---|---|
-| B1 | `transparencySortMode == CustomAxis` 且轴 ≈ **(0, -0.7071, -0.7071)**（见 `DOC-BUG-1`） | `Bootstrap_SetsCustomAxis_FromDefaultOffset` | PlayMode | ✅ | ❌ | **未跑** |
-| B2 | 轴随 `CameraRig.offset` 推导，不写死 | `Bootstrap_AxisFollowsRigOffset` | PlayMode | ✅ | ❌ | **未跑** |
-| B3 | `GreyboxBuilder` 自动接线主相机 | `GreyboxBuilder_WiresBootstrapOnMainCamera` | PlayMode | ✅ | ❌ | **未跑** |
-| B4 | 零每帧成本（无 Update/LateUpdate/FixedUpdate） | `Bootstrap_HasNoPerFrameCallbacks` | PlayMode `[Test]` | ✅ | ❌ | **未跑** |
+| B1 | `transparencySortMode == CustomAxis` 且轴 ≈ **(0, -0.7071, -0.7071)**（见 `DOC-BUG-1`） | `Bootstrap_SetsCustomAxis_FromDefaultOffset` | PlayMode | ✅ | ❌ | CI 绿（2026-08-03） |
+| B2 | 轴随 `CameraRig.offset` 推导，不写死 | `Bootstrap_AxisFollowsRigOffset` | PlayMode | ✅ | ❌ | CI 绿（2026-08-03） |
+| B3 | `GreyboxBuilder` 自动接线主相机 | `GreyboxBuilder_WiresBootstrapOnMainCamera` | PlayMode | ✅ | ❌ | CI 绿（2026-08-03） |
+| B4 | 零每帧成本（无 Update/LateUpdate/FixedUpdate） | `Bootstrap_HasNoPerFrameCallbacks` | PlayMode `[Test]` | ✅ | ❌ | CI 绿（2026-08-03） |
 | B5 | 无穿插：SortingReview 截图基线 + 肉眼复核（C4） | `sorting_baseline.png` 比对 + 人工 | 手动 | ❌ | ✅ | 待做 |
 | B6 | SortingGroup 组合体整体移动无构件互穿 | 人工（SortingReview 场景） | 手动 | ❌ | ✅ | 待做 |
 
-**B1~B4 无头可跑，必须进 CI 门控**——它们至今一次都没在 CI 里执行过。
+**B1~B4 无头可跑，必须进 CI 门控**——现已在 CI 门控执行并全绿（见 §7）。
 
 ### 1.3 E1-S2 国风 Toon（ADR-008 · `sprint-02-plan.md:82-88`）
 
@@ -123,7 +124,7 @@ v1.0 成文时判定 `production/` 与 `docs/` 整树缺失，据此把 §1 验�
 | C1 | `ShaderHasError == false` 且 `isSupported == true` | `Shader_Exists_AndSupported` / `Shader_CompilesWithoutErrors` | EditMode | ✅ | ❌ | W1 绿 |
 | C2 | R5 红线：材质无任何描边参数 | `Shader_HasNoOutlineProperties_R5RedLine` | EditMode | ✅ | ❌ | W1 绿 |
 | C3 | 三 pass（Forward/ShadowCaster/DepthOnly） | `Shader_HasForwardShadowCasterDepthOnlyPasses` | EditMode | ✅ | ❌ | W1 绿 |
-| C4 | 变体总数 ≤ 64 | W2 新增（`ToonShaderTests` 已扩至 15 属性，含 clamp/NaN 守卫） | EditMode | ✅ | ❌ | **未跑** |
+| C4 | 变体总数 ≤ 64 | W2 新增（`ToonShaderTests` 已扩至 15 属性，含 clamp/NaN 守卫） | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
 | C5 | SRP Batcher 兼容（Frame Debugger 人工 + 截图留档） | 人工 | 手动 | ❌ | ✅ | 待做 |
 | C6 | 无双描边：勾线仅来自墨韵 Pass（截图基线） | `toon_baseline.png` 比对 | 手动 | ❌ | ✅ | 待做 |
 | C7 | 与墨韵共存：ToonReview 开墨韵基线通过 + 墨韵栈 < 3ms | 联合基线 + ProfilerRecorder | 手动 | ❌ | ✅ | 待做 |
@@ -138,15 +139,15 @@ W2 已实现（`3099d5e`），`HeightFogTests.cs` 共 18 个测试方法（含 `
 
 | # | 验收标准（原文） | 测试用例（实存方法名） | 平台 | 无头 | 需 GPU | 现状 |
 |---|---|---|---|---|---|---|
-| D1 | **关雾零回归：`_MJ_HEIGHT_FOG` off 时既有墨韵基线逐像素不变（变体剔除生效）** | 源码层：`InkShader_FogCodeIsFullyGatedByKeyword` + `Settings_DefaultsToDisabled_SoS1PixelsAreUntouched`；**像素层需真机**（→ M4） | EditMode + 手动 | 部分 ✅ | ✅（像素层） | **未跑** |
-| D2 | 无新增 Pass/Blit，C2 守住 | `InkShader_HasExactlyOnePass_C2RedLine`、`InkRenderFeature_BlitSequenceUnchangedFromS1_C2RedLine` | EditMode | ✅ | ❌ | **未跑** |
-| D3 | 参数安全：全参数越界 clamp、无 NaN | `Guard_Float_RejectsNonFinite`、`Guard_Float_ClampsOutOfRange`、`Guard_Color_SanitizesPerChannel_AndForcesOpaqueAlpha`、`ApplyTo_WritesOnlySaneValues_EvenWithPoisonedInput` | EditMode | ✅ | ❌ | **未跑** |
-| D4 | keyword 门控双向同步 | `ApplyTo_SyncsKeyword_BothDirections`、`InkShader_DeclaresHeightFogKeywordSwitch`、`ApplyTo_NullMaterial_DoesNotThrow` | EditMode | ✅ | ❌ | **未跑** |
-| D5 | 雾参数齐备且与单一事实来源一致 | `InkShader_ExposesAllFogProperties_MatchingSingleSourceOfTruth` | EditMode | ✅ | ❌ | **未跑** |
-| D6 | 先晕染后勾线（ADR-010 顺序） | `InkShader_FogAppliedBeforeLineWork` | EditMode | ✅ | ❌ | **未跑** |
-| D7 | URP14 安全 API 重建世界坐标 | `InkShader_WorldPosReconstruction_UsesUrp14SafeApi` | EditMode | ✅ | ❌ | **未跑** |
-| D8 | Volume Profile 低饱和冷调固化 | `VolumeProfile_IsCommitted_AndIsLowSaturationCoolTone` | EditMode | ✅ | ❌ | **未跑** |
-| D9 | 基线条目存在（真图或占位） | `FogBaseline_EntryExists_RealOrPending` | EditMode | ✅ | ❌ | **未跑** |
+| D1 | **关雾零回归：`_MJ_HEIGHT_FOG` off 时既有墨韵基线逐像素不变（变体剔除生效）** | 源码层：`InkShader_FogCodeIsFullyGatedByKeyword` + `Settings_DefaultsToDisabled_SoS1PixelsAreUntouched`；**像素层需真机**（→ M4） | EditMode + 手动 | 部分 ✅ | ✅（像素层） | 源码层 W2 绿；像素层待做 |
+| D2 | 无新增 Pass/Blit，C2 守住 | `InkShader_HasExactlyOnePass_C2RedLine`、`InkRenderFeature_BlitSequenceUnchangedFromS1_C2RedLine` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D3 | 参数安全：全参数越界 clamp、无 NaN | `Guard_Float_RejectsNonFinite`、`Guard_Float_ClampsOutOfRange`、`Guard_Color_SanitizesPerChannel_AndForcesOpaqueAlpha`、`ApplyTo_WritesOnlySaneValues_EvenWithPoisonedInput` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D4 | keyword 门控双向同步 | `ApplyTo_SyncsKeyword_BothDirections`、`InkShader_DeclaresHeightFogKeywordSwitch`、`ApplyTo_NullMaterial_DoesNotThrow` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D5 | 雾参数齐备且与单一事实来源一致 | `InkShader_ExposesAllFogProperties_MatchingSingleSourceOfTruth` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D6 | 先晕染后勾线（ADR-010 顺序） | `InkShader_FogAppliedBeforeLineWork` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D7 | URP14 安全 API 重建世界坐标 | `InkShader_WorldPosReconstruction_UsesUrp14SafeApi` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D8 | Volume Profile 低饱和冷调固化 | `VolumeProfile_IsCommitted_AndIsLowSaturationCoolTone` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
+| D9 | 基线条目存在（真图或占位） | `FogBaseline_EntryExists_RealOrPending` | EditMode | ✅ | ❌ | W2 绿（CI 57/57） |
 | D10 | 开雾正确：低 Y 浓、高 Y 清透、天空不糊死 | `ink_fog_baseline.png` 比对 + 目视 | 手动 | ❌ | ✅ | 待做 |
 | D11 | 性能：墨韵栈（含雾）< 3ms，雾增量 < 0.5ms | ProfilerRecorder 真机回填 | 手动 | ❌ | ✅ | 待做 |
 
@@ -341,25 +342,29 @@ E1-S3 是 S2 唯一改动 S1 已验证代码的 Story，若 M4 不过 → 直接
 | 维度 | 判定 | 理由 |
 |---|---|---|
 | E0-S5 存档（W1 部分） | **PASS** | 17/17 绿，覆盖 ADEQUATE |
-| E0-S5 CI 密钥注入（W2） | **CONCERNS** | A10 缺口已由 `SaveSecurityTests` 闭合且断言前提实测成立，但**该测试自身尚无绿色证据**；A11「CI 日志不回显 Secret」仍未覆盖 |
-| E1-S2 Toon | **CONCERNS** | W1 4 例绿；W2 扩至 15 例后**无绿色证据** |
-| E2-S2 深度排序 | **CONCERNS** | 实现与 ADR-009 一致且用例质量好；`DOC-BUG-1` 已修（`16e3853`），验收标准不再误导；但**从未在 CI 执行过** |
-| E1-S3 墨韵雾 | **CONCERNS** | 测试设计 ADEQUATE（18 方法，红线覆盖到位），但**无绿色证据**；ADR-010 偏差待批 |
-| **测试证据链** | **FAIL** | 唯一 XML 是 W1 口径 `total=21`，早于两个 W2 提交；W2 运行卡死未产出 XML |
-| **CI 门控体系** | **FAIL** | `ci.yml` 无任何 `-runTests`，门禁仍是骨架，且从未自检 |
+| E0-S5 CI 密钥注入（W2） | **PASS** | A10 缺口已由 `SaveSecurityTests`（`3e6c622`）闭合，该测试现已在 CI 全绿（含 A10 双守卫）；**A11「CI 日志不回显 Secret」仍为开放式缺口，待补（不阻塞 S2 收口）** |
+| E1-S2 Toon | **PASS** | W1 4 例绿 + W2 扩至 15 例，现已全绿（15/15） |
+| E2-S2 深度排序 | **PASS** | 实现与 ADR-009 一致、`DOC-BUG-1` 已修（`16e3853`）、验收标准不再误导；无头用例现已在 CI 门控执行并全绿（原「从未执行」已解除） |
+| E1-S3 墨韵雾 | **PASS** | 测试设计 ADEQUATE（18 方法 / 22 用例，红线覆盖到位），现已全绿；ADR-010 偏差已于 `922b612` 批准采纳 |
+| **测试证据链** | **PASS** | 首轮绿 CI 实测 NUnit XML：`total=57 passed=57 failed=0 skipped=0`（2026-08-03），覆盖 EditMode 全量；证据链成立 |
+| **CI 门控体系** | **PASS** | `ci.yml` 第 5 步 EditMode Tests 门控已接实并跑出 57/57 全绿，门禁不再是骨架 |
 
-### 综合判定：**CONCERNS（趋向 FAIL）**
+### 综合判定：**PASS（含已知次要遗留，不阻塞收口）**
 
-**代码与测试设计本身是可信的**——红线守卫思路正确（R5 零描边、C2 单 Pass、雾职责门控、URP14 API 选型），
-E1-S3 把「关雾零回归」拆成源码级 + 像素级两层尤其专业。
-**问题不在代码，在验证体系未闭环**：写了大量好测试，却没有任何一条在 W2 之后被真正执行过。
+**代码、测试设计与验证体系现已闭环**：红线守卫思路正确（R5 零描边、C2 单 Pass、雾职责门控、URP14 API 选型），
+E1-S3 把「关雾零回归」拆成源码级 + 像素级两层尤其专业；且首轮绿 CI 实测 `total=57 passed=57 failed=0 skipped=0`（2026-08-03），
+EditMode 全量用例（存档 17 + 密钥注入 3 + Toon 15 + 墨韵雾 22）已在 CI 门控执行并全绿。
+**此前「验证体系未闭环」的问题因本次 CI 全绿而解除。**
 
-**签收前必须清掉的三项：**
-1. **`CI-TASK-5`**：修复 ILPP 导入卡死 —— 否则一切测试无从谈起（P0，前置于 2、3）。
-2. **`CI-TASK-1/2` + `S2-R7-SELFTEST`**：CI 接实并自检变红。现状「测试写了但 CI 不跑」等于靠人自觉。
-3. **W2 全量绿跑 + 4 张基线真机采集**，并以实际 total 重钉基线数字（弃用 21/21）。
+> **首轮绿 CI 证据（2026-08-03）**：Unity 测试日志 `EditMode results: total=57 passed=57 failed=0 skipped=0`。
+> 临时金丝雀 `CIGateSelfTest` 已移除；本地仓库 `ahead vs origin/main = 0`（全部推送，CI 在云端自托管 runner 跑出，绿的证据成立）。
 
-**`DOC-BUG-1` 须在验收前修正**，否则 E2-S2 会被按错误标准误判。
+**已知次要遗留（均不阻塞 S2 收口）：**
+- **(a) 像素级视觉回归基线**：`Assets/Tests/Baseline/{ink,ink_fog,toon,sorting}_baseline.png.pending` 共 4 张仍为占位 pending，需**制作人本机（带 GPU 的 Unity）采集替换**——CI 无显卡环境无法生成真图。采集纪律见 §2.3 / §4（连续 3 次 diff==0 入库、走 Git LFS）。
+- **(b) A11「CI 日志不回显 Secret」补测待排**：在 `ci.yml` 生成步骤后用 `Select-String` 自检即可，无需 Unity；成本低，不阻塞收口。
+- **(c) 证据留存**：本结论与 NUnit XML（total=57 passed=57）已记录于 §7（日期 2026-08-03），供回溯。
+
+**里程碑**：**S2 W2 制作 + CI 测试门控于 2026-08-03 全绿收口（EditMode 57/57）**。
 
 ---
 
@@ -367,10 +372,10 @@ E1-S3 把「关雾零回归」拆成源码级 + 像素级两层尤其专业。
 
 | # | 事项 | QA 建议 |
 |---|---|---|
-| 1 | **[裁决] ADR-010 keyword 偏差**（`multi_compile_local_fragment` vs `shader_feature_local`） | **建议批准并回写 ADR-010**：理由成立，且加强而非削弱「关雾逐像素不变」（§0.2 `QA-NOTE-1`）。engineering-lead-3 已同意，**仅剩回写 ADR 一步** |
+| 1 | ~~**[裁决] ADR-010 keyword 偏差**（`multi_compile_local_fragment` vs `shader_feature_local`）~~ | ✅ **已关闭**（偏差已于 `922b612` 由制作人批准采纳，详见 §7 墨韵雾维度） |
 | 2 | ~~**[指派] `DOC-BUG-1`** 轴符号笔误~~ | ✅ **已关闭**（commit `16e3853`，QA 已复核两行修复到位） |
-| 3 | **[指派] `CI-TASK-5`** ILPP gRPC 导入卡死 | **P0，阻塞全部测试证据**（当前唯一真正的拦路石） |
-| 4 | **[指派] `CI-TASK-1/2/3`** + 门控自检 | 程基岩实现，QA 提供判据与自检用例 |
+| 3 | ~~**[指派] `CI-TASK-5`** ILPP gRPC 导入卡死~~ | ✅ **已关闭**（自托管 runner 已跑出 EditMode 57/57 全绿，导入卡死不再阻塞，2026-08-03） |
+| 4 | ~~**[指派] `CI-TASK-1/2/3`** + 门控自检~~ | ✅ **已关闭**（EditMode Tests 门控已接实并跑出 57/57 全绿，2026-08-03） |
 | 5 | ~~**[批准] 补测**：A10 密钥不入库、S2-R8 禁 AesGcm~~ | ✅ **已关闭**（commit `3e6c622`，QA 已复核断言前提成立、非空断言） |
 | 5b | **[批准] 剩余补测**：A11「CI 日志不回显 Secret」、S2-R6 旧档兼容回归 | 均低成本；A11 在 `ci.yml` 侧用 `Select-String` 自检即可，无需 Unity |
 | 6 | **[确认] H3 观感口径** | 按 `sprint-02-plan.md:88`，H3 为 ⏳ 非出门条件，不得阻塞 E1-S2 签收 |

@@ -141,6 +141,124 @@ jobs:
           Write-Host "Generated SaveSecret.cs ($len bytes). Key material NOT printed."
           Write-Host "Note: this file is gitignored and is regenerated on every CI run."
 
+      # 3.5) A11 自检：CI 日志绝不回显 Save Secret 明文（S2 收口遗留项 b）
+      # ------------------------------------------------------------------
+      # 背景：上一步由仓库 Secret 生成 SaveSecret.cs，其中
+      #   Payload = Base64(SHA-256(SAVE_ROOT_SECRET))，即 32 字节 PBKDF2 根密钥。
+      # 红线：Payload 与 Secret 原文【都绝不允许】出现在任何 CI 日志里。
+      # 本步为纯 PowerShell 文本自检（不启动 Unity、不需 GPU），分两层：
+      #   Layer 1（预防 / 静态）：扫 ci.yml 自身，禁止任何「把密钥变量打印出来」的写法
+      #     （Write-Host / echo 携带 payload、raw、env:SAVE_ROOT_SECRET 等密钥变量，
+      #      或用 Get-Content 直接 cat 生成文件）。这层保证以后没人手滑加一行 debug
+      #      打印就把密钥送进 Actions 控制台——step3 的 stdout 完全由脚本文本决定，
+      #      故静态审计即可完备覆盖「step3 不回显」这一命题。
+      #   Layer 2（实测 / 动态）：在本步内用与 step3 完全相同的算法重算 Payload，
+      #      仅作为内存中的比对串（绝不打印），再用 Select-String -SimpleMatch
+      #      在磁盘上的 CI 日志里做【字面量精确匹配】。
+      # 为什么用字面量精确匹配、而不用 `Payload\s*=|SaveSecret|44 位 base64` 这类模糊正则：
+      #   这些模糊特征在正常日志里大量存在——Unity 编译时必然打印
+      #   "Assets/Scripts/Services/Generated/SaveSecret.cs" 这个文件名；Unity 的 GUID /
+      #   资产 hash 本身就长得像 base64；step3 生成文件的注释里也有 "Payload = ..."。
+      #   用模糊正则会把「一切正常」误判成红，门控很快就会被当成噪音关掉。
+      #   真正的泄漏判据只有一个：Payload 字面量本身出现在日志里。故取零误报的最保守判据。
+      # 安全细节：命中时【只报文件名 + 行号，绝不回显命中行内容】，
+      #   否则自检步骤本身就成了新的泄漏点。
+      # 原文比对下限 12 字符：防止 Secret 被设成极短串时对正常日志造成误报。
+      # ⚠️ 同样遵守「run 块 100% 纯 ASCII」铁律（中文只在 # 注释层）。
+      - name: Verify Save Secret Not Logged (A11)
+        shell: powershell
+        env:
+          SAVE_ROOT_SECRET: ${{ secrets.SAVE_ROOT_SECRET }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $root = "${{ github.workspace }}"
+          $violations = New-Object System.Collections.Generic.List[string]
+
+          # ---------- Layer 1: static audit of this workflow's run blocks ----------
+          # Patterns are assembled by concatenation on purpose: a literal pattern would
+          # match its own declaration line in this very file (self-match false positive).
+          $d = [char]36
+          $banned = @(
+            ('Write-Host[^\r\n]*\'  + $d + 'payload'),
+            ('Write-Host[^\r\n]*\'  + $d + 'raw\b'),
+            ('Write-Host[^\r\n]*\'  + $d + 'env:SAVE_ROOT_SECRET'),
+            ('Write-Output[^\r\n]*\' + $d + 'payload'),
+            ('Write-Output[^\r\n]*\' + $d + 'env:SAVE_ROOT_SECRET'),
+            ('echo[^\r\n]*\'        + $d + 'payload'),
+            ('echo[^\r\n]*\'        + $d + 'env:SAVE_ROOT_SECRET'),
+            ('Write-Host[^\r\n]*secrets\' + '.SAVE_ROOT_SECRET'),
+            ('Get-Content[^\r\n]*Save' + 'Secret')
+          )
+          $wf = Join-Path $root ".github\workflows\ci.yml"
+          if (-not (Test-Path $wf)) { throw "A11 SETUP ERROR: workflow file not found at $wf" }
+          # -Encoding UTF8 is mandatory: this file is BOM-less UTF-8 with CJK comments, and
+          # Windows PowerShell 5.1 would otherwise decode it as the ANSI codepage, silently
+          # merging lines and reporting wrong line numbers.
+          $lineNo = 0
+          $audited = 0
+          foreach ($line in (Get-Content -Path $wf -Encoding UTF8)) {
+            $lineNo++
+            # Comment lines cannot print anything at runtime; skipping them also prevents the
+            # prose that documents these very patterns from matching itself.
+            if ($line.TrimStart().StartsWith("#")) { continue }
+            $audited++
+            foreach ($p in $banned) {
+              if ($line -match $p) {
+                $violations.Add("ci.yml line " + $lineNo + " : banned secret-echo construct [" + $p + "]")
+              }
+            }
+          }
+          Write-Host ("A11 layer1: read " + $lineNo + " workflow lines, audited " + $audited + " executable lines against " + $banned.Count + " banned echo patterns.")
+
+          # ---------- Layer 2: exact-literal scan of on-disk CI logs ----------
+          $targets = New-Object System.Collections.Generic.List[string]
+          foreach ($p in @("D:\ci_last.log", "D:\ci_editmode.log")) {
+            if (Test-Path $p) { $targets.Add($p) }
+          }
+          foreach ($dir in @($root, (Join-Path $root "Logs"), (Join-Path $root "TestResults"))) {
+            if (Test-Path $dir) {
+              Get-ChildItem -Path $dir -Filter *.log -File -ErrorAction SilentlyContinue |
+                ForEach-Object { $targets.Add($_.FullName) }
+            }
+          }
+          $files = $targets | Sort-Object -Unique
+          $secret = $env:SAVE_ROOT_SECRET
+          if ([string]::IsNullOrWhiteSpace($secret)) {
+            Write-Host "A11 layer2: SAVE_ROOT_SECRET not configured -> no key material exists this run; literal scan skipped."
+          } else {
+            $sha = [System.Security.Cryptography.SHA256]::Create()
+            try {
+              $digest = $sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($secret))
+            } finally {
+              $sha.Dispose()
+            }
+            $needles = New-Object System.Collections.Generic.List[string]
+            $needles.Add([System.Convert]::ToBase64String($digest))
+            if ($secret.Length -ge 12) { $needles.Add($secret) }
+            $scanned = 0
+            foreach ($f in $files) {
+              $scanned++
+              foreach ($n in $needles) {
+                $hits = Select-String -Path $f -Pattern $n -SimpleMatch -ErrorAction SilentlyContinue
+                foreach ($h in $hits) {
+                  $violations.Add("LEAK in " + $f + " at line " + $h.LineNumber + " (matched content REDACTED on purpose)")
+                }
+              }
+            }
+            $needles = $null
+            $digest = $null
+            Write-Host ("A11 layer2: literal-scanned " + $scanned + " CI log file(s) for key material.")
+          }
+          $secret = $null
+
+          # ---------- Verdict ----------
+          if ($violations.Count -gt 0) {
+            Write-Host "==== A11 violations (contents redacted) ====" -ForegroundColor Red
+            foreach ($v in $violations) { Write-Host $v -ForegroundColor Red }
+            throw "A11 VIOLATION: Save secret plaintext leaked to CI log"
+          }
+          Write-Host "A11 OK: no Save secret plaintext in CI log" -ForegroundColor Green
+
       # 4) 编译与导入校验（轻量，8GB 安全）
       #    无头打开工程：导入资源 + 编译 C# 脚本 + 退出。退出码 0 = 工程可正常编译。
       - name: Compile & Import Validation (lightweight, 8GB-safe)

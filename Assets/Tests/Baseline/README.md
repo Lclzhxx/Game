@@ -31,8 +31,8 @@
    - `Height Fog → enabled` = **false**。
 5. 菜单 `MJ → Test → Capture Baseline - toon_baseline` 与 `... - ink_baseline`。
 6. 把 `Height Fog → enabled` 改成 **true**，再 `MJ → Test → Capture Baseline - ink_fog_baseline`。
-7. 打开 `Assets/Tests/Scenes/SortingReview.unity`，进 Play 一帧后 `Capture Baseline`（排序场景靠 `Start()` 搭场景，
-   需要 Play；采完退出 Play 前截）。改名为 `sorting_baseline.png`。
+7. 打开 `Assets/Tests/Scenes/SortingReview.unity`，进 Play 一帧后菜单 `MJ → Test → Capture Baseline - sorting_baseline`
+   （排序场景靠 `Start()` 搭场景，需要 Play；仍留在 Play 模式时截）。
 8. 删除对应的 `*.png.pending` 标记文件，提交（`*.png` 已在 `.gitattributes` 走 LFS，提交前用
    `git lfs status` 确认它是 LFS 对象而不是普通二进制）。
 

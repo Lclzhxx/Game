@@ -7,6 +7,7 @@
 //   MJ/Test/Capture Baseline - toon_baseline     采 Toon 基线
 //   MJ/Test/Capture Baseline - ink_baseline      采墨韵基线（关雾）
 //   MJ/Test/Capture Baseline - ink_fog_baseline  采墨韵基线（开雾）
+//   MJ/Test/Capture Baseline - sorting_baseline  采排序基线（SortingReview 场景，需进 Play 一帧后截）
 //   MJ/Test/Compare Active Scene Against Baseline...  当前画面 vs 选定基线，按容差判定
 // 容差（S2-R5 缓解措施）：≥99% 像素的逐通道差 < 2/255 判通过；
 //   E1-S3 的「关雾逐像素不变」用更严的 100% / 0 差阈（菜单里单列）。
@@ -58,6 +59,9 @@ public static class BaselineCaptureMenu
 
     [MenuItem("MJ/Test/Capture Baseline - ink_fog_baseline", false, 222)]
     public static void CaptureInkFog() { Capture("ink_fog_baseline"); }
+
+    [MenuItem("MJ/Test/Capture Baseline - sorting_baseline", false, 223)]
+    public static void CaptureSorting() { Capture("sorting_baseline"); }
 
     private static void Capture(string baseName)
     {

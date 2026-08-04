@@ -22,6 +22,7 @@
 using MJ.Rendering;
 using UnityEngine;
 
+[ExecuteInEditMode] // 编辑态打开场景即自动搭建，球/胶囊无需进 Play 即可在 Scene 视图看到（便于 H3 评审与排查）
 public class ToonReviewBuilder : MonoBehaviour
 {
     public const string ROOT_NAME = "ToonReview";
@@ -39,7 +40,9 @@ public class ToonReviewBuilder : MonoBehaviour
 
     void Start()
     {
-        if (autoBuildOnStart && GameObject.Find(ROOT_NAME) == null)
+        // 无条件构建：Build() 内部会先销毁已存在的 ToonReview 组，
+        // 避免「场景残留旧组」导致跳过重建、相机仍指向已销毁 focus 的取景失效。
+        if (autoBuildOnStart)
             Build();
     }
 
@@ -133,6 +136,16 @@ public class ToonReviewBuilder : MonoBehaviour
         rig.target = focus.transform;
         rig.offset = cameraOffset;
         rig.useSmoothing = false; // 基线截图：构图必须稳定
+
+        // 同步摆位：不依赖 CameraRig 的 Awake/LateUpdate 时机（运行时 AddComponent 的
+        // Awake 延后到下一帧，首帧渲染时相机未摆正 => Game 视图蓝屏、看不到球/胶囊）。
+        // 这里立即写死机位与朝向，确保首帧即正确取景。
+        cam.transform.position = focus.transform.position + cameraOffset;
+        cam.transform.LookAt(focus.transform.position);
+        cam.nearClipPlane = 0.3f;
+        cam.farClipPlane = 1000f;
+        cam.enabled = true;
+        cam.gameObject.SetActive(true);
 
         // 相机也参与 Y-Z 排序接线（与生产一致；Toon 为不透明，此处只为环境一致性）
         if (cam.GetComponent<DepthSortBootstrap>() == null)

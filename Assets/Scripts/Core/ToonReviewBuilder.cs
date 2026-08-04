@@ -98,6 +98,28 @@ public class ToonReviewBuilder : MonoBehaviour
         StripCollider(capsule);
         capsule.GetComponent<Renderer>().sharedMaterial = toonMat;
 
+        // ---- 诊断对照立方体（标准 URP/Lit，红）：隔离"物体根本没渲染" vs "Toon 着色器问题" ----
+        // 判读：若本红立方体在 Game/Scene 可见、而 Toon 球/胶囊不可见 => 问题在 Toon 着色器；
+        //       若本红立方体也不可见 => 是相机/渲染管线层面任何物体都不画。
+        // 定位完成后移除本块。
+        GameObject diagCube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        diagCube.name = "DIAG_ControlCube";
+        diagCube.transform.SetParent(root.transform, false);
+        diagCube.transform.localPosition = new Vector3(0f, 4f, 0f); // 位于 focus 上方、相机取景内
+        diagCube.transform.localScale = Vector3.one * 1.2f;
+        StripCollider(diagCube);
+        Shader litShader = Shader.Find("Universal Render Pipeline/Lit");
+        if (litShader != null)
+        {
+            Material litMat = new Material(litShader) { name = "DIAG_Lit" };
+            litMat.SetColor("_BaseColor", new Color(1f, 0.2f, 0.2f, 1f));
+            diagCube.GetComponent<Renderer>().sharedMaterial = litMat;
+        }
+        else
+        {
+            Debug.LogWarning("[ToonReviewBuilder] 未找到 URP Lit 着色器，对照立方体回退默认材质。");
+        }
+
         // ---- 主平行光（含阴影：验证 ShadowCaster pass） ----
         GameObject sunGO = new GameObject("MainLight");
         sunGO.transform.SetParent(root.transform, false);

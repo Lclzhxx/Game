@@ -31,7 +31,7 @@ namespace MJ.Rendering
         public bool enabled = false;
 
         [Tooltip("雾色：默认淡墨青灰，呼应水墨低饱和冷调。")]
-        public Color fogColor = new Color(0.62f, 0.68f, 0.72f, 1f);
+        public Color fogColor = new Color(0.52f, 0.58f, 0.64f, 1f); // 墨青灰
 
         [Tooltip("雾面世界 Y 高度：低于此高度雾开始变浓。")]
         [Range(MinBaseHeight, MaxBaseHeight)] public float baseHeight = DefaultBaseHeight;
@@ -49,13 +49,13 @@ namespace MJ.Rendering
         [Range(MinSkyBlend, MaxSkyBlend)] public float skyBlend = DefaultSkyBlend;
 
         // ---- clamp 区间与默认值：Inspector / ApplyTo / EditMode 共用同一套常量，杜绝多处漂移 ----
-        public const float MinBaseHeight = -100f, MaxBaseHeight = 500f, DefaultBaseHeight = 0f;
-        public const float MinDensity = 0f, MaxDensity = 5f, DefaultDensity = 0.8f;
-        public const float MinHeightFalloff = 0f, MaxHeightFalloff = 2f, DefaultHeightFalloff = 0.15f;
-        public const float MinDistFade = 0.01f, MaxDistFade = 1000f, DefaultDistFade = 60f;
-        public const float MinSkyBlend = 0f, MaxSkyBlend = 1f, DefaultSkyBlend = 0.25f;
+        public const float MinBaseHeight = -100f, MaxBaseHeight = 500f, DefaultBaseHeight = -2f;
+        public const float MinDensity = 0f, MaxDensity = 5f, DefaultDensity = 1.2f;
+        public const float MinHeightFalloff = 0f, MaxHeightFalloff = 2f, DefaultHeightFalloff = 0.5f;
+        public const float MinDistFade = 0.01f, MaxDistFade = 1000f, DefaultDistFade = 18f;
+        public const float MinSkyBlend = 0f, MaxSkyBlend = 1f, DefaultSkyBlend = 0.2f;
 
-        public static Color DefaultFogColor => new Color(0.62f, 0.68f, 0.72f, 1f);
+        public static Color DefaultFogColor => new Color(0.52f, 0.58f, 0.64f, 1f);
 
         // ---- Shader 属性名与 ID（ID 避免每帧字符串哈希；名字暴露给测试做存在性断言） ----
         public const string PropFogColor = "_FogColor";

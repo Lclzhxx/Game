@@ -10,14 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de640fe3d0db1804a85f9fc8f5cadab6, type: 3}
-  m_Name: New Custom Universal Renderer Data
+  m_Name: New Universal Render Pipeline Asset_Renderer
   m_EditorClassIdentifier: 
   debugShaders:
     debugReplacementPS: {fileID: 4800000, guid: cf852408f2e174538bcd9b7fda1c5ae7, type: 3}
     hdrDebugViewPS: {fileID: 4800000, guid: 573620ae32aec764abd4d728906d2587, type: 3}
-  m_RendererFeatures:
-  - {fileID: 1055002197588892838}
-  m_RendererFeatureMap: a6dc8ab8e81ea40e
+  m_RendererFeatures: []
+  m_RendererFeatureMap: 
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -59,32 +58,3 @@ MonoBehaviour:
   m_CopyDepthMode: 1
   m_AccurateGbufferNormals: 0
   m_IntermediateTextureMode: 1
---- !u!114 &1055002197588892838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 41e05ab816793ba43aaf6c138bb0c571, type: 3}
-  m_Name: InkRenderFeature
-  m_EditorClassIdentifier: 
-  m_Active: 1
-  settings:
-    inkMaterial: {fileID: 2100000, guid: bf647ddd967ab594c905e5699577b225, type: 2}
-    lineThickness: 1
-    lineStrength: 1
-    paperStrength: 0.35
-    feibaiThreshold: 0.7
-    inkStainStrength: 0.6
-    enabled: 1
-    heightFog:
-      enabled: 1
-      fogColor: {r: 0.62, g: 0.68, b: 0.72, a: 1}
-      baseHeight: -3
-      density: 1.2
-      heightFalloff: 0.4
-      distFade: 60
-      skyBlend: 0.25

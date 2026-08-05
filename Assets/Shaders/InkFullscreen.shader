@@ -26,13 +26,15 @@ Shader "Custom/InkFullscreen"
         _InkStainStrength ("Ink Stain Strength", Float) = 0.6
 
         // ---- 高度雾（E1-S3 / ADR-010）。全部由 InkRenderFeature 的 HeightFogSettings 驱动，
-        //      Inspector 上调 Feature 即可，无需手改材质。keyword 关闭时这些值完全不参与计算。----
-        _FogColor         ("Fog Color (淡墨青灰)", Color) = (0.62, 0.68, 0.72, 1)
-        _FogBaseHeight    ("Fog Base Height (雾面世界 Y)", Float) = 0.0
-        _FogDensity       ("Fog Density", Float) = 0.8
-        _FogHeightFalloff ("Fog Height Falloff (越大越贴地)", Float) = 0.15
-        _FogDistFade      ("Fog Distance Fade (米)", Float) = 60.0
-        _FogSkyBlend      ("Fog Sky Blend Cap (天空混合上限)", Float) = 0.25
+        //      Inspector 上调 Feature 即可，无需手改材质。keyword 关闭时这些值完全不参与计算。
+        //      ⚠️ 下方字面量必须与 HeightFogSettings.DefaultXxx 严格一致——EditMode 测试
+        //      InkShader_ExposesAllFogProperties_MatchingSingleSourceOfTruth 守门，漂移必红。----
+        _FogColor         ("Fog Color (淡墨青灰)", Color) = (0.52, 0.58, 0.64, 1)
+        _FogBaseHeight    ("Fog Base Height (雾面世界 Y)", Float) = -2.0
+        _FogDensity       ("Fog Density", Float) = 1.2
+        _FogHeightFalloff ("Fog Height Falloff (越大越贴地)", Float) = 0.5
+        _FogDistFade      ("Fog Distance Fade (米)", Float) = 18.0
+        _FogSkyBlend      ("Fog Sky Blend Cap (天空混合上限)", Float) = 0.2
     }
 
     SubShader

@@ -78,11 +78,10 @@ public class InkRenderFeature : ScriptableRendererFeature
             return;
         }
 
-        // 单代码路径：始终使用 renderer.cameraColorTarget（返回 RenderTargetIdentifier）。
-        // 在 Unity 6（URP v17）下 cameraColorTarget 仅被标记为 [Obsolete]，仍返回 RenderTargetIdentifier，可编译；
-        // 在 2022.3（URP v14）下为原生写法。两者共用同一行，无需版本宏分支。
-        // （注意：若项目开启"Warning as Error"，v17 下该 obsolete 警告会升级为错误；见回传说明的处理建议。）
-        m_InkPass.Setup(renderer.cameraColorTarget);
+        // 注意：cameraColorTarget 只能在 ScriptableRenderPass 作用域（OnCameraSetup / Configure / Execute）内访问。
+        // 在 AddRenderPasses（仅登记阶段）里调用会触发 "You can only call cameraColorTarget inside the scope of a
+        // ScriptableRenderPass" 报错，且取到的 RT 不合法、墨韵 Pass 无法正确读写屏幕色。
+        // 相机颜色目标改为在 InkRenderPass.Execute 内部、合法时机下获取。
         renderer.EnqueuePass(m_InkPass);
     }
 
@@ -97,11 +96,6 @@ public class InkRenderFeature : ScriptableRendererFeature
             m_Settings = settings;
         }
 
-        public void Setup(RenderTargetIdentifier cameraColorTarget)
-        {
-            m_CameraColorTarget = cameraColorTarget;
-        }
-
         // Configure：仅保证深度纹理可用（墨线靠深度 Sobel）。临时 RT 的 descriptor 在 Execute 里取。
         public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
         {
@@ -114,6 +108,9 @@ public class InkRenderFeature : ScriptableRendererFeature
         {
             Material mat = m_Settings.inkMaterial;
             if (mat == null) return;
+
+            // cameraColorTarget 必须在 Pass 作用域（此处 Execute）内访问，否则触发控制台报错且 RT 非法。
+            m_CameraColorTarget = renderingData.cameraData.renderer.cameraColorTarget;
 
             // 同步可调参数（每帧从 Inspector 读，改参数即时生效）
             mat.SetFloat("_LineThickness", m_Settings.lineThickness);

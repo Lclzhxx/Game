@@ -72,6 +72,12 @@ public class ToonReviewBuilder : MonoBehaviour
             toonBrushMat.SetTextureScale("_BrushNormalMap", new Vector2(6f, 6f)); // 铺开笔锋密度
         }
 
+        // ---- 验收专用：加深暗面（淡墨）对比，便于 H3 肉眼判读 2 档分明 ----
+        // 仅改本验收场景的材质实例，不改 ToonMaterialDefaults 基线（ADR-008：骨架不钉观感，最终浓淡归美术）。
+        Color reviewShadow = new Color(0.40f, 0.46f, 0.52f, 1f); // 中冷灰：明显可读且非死黑
+        toonMat.SetColor("_ShadowTint", reviewShadow);
+        toonBrushMat.SetColor("_ShadowTint", reviewShadow);
+
         // ---- 带笔触法线的地面平面（Toon 材质，非默认 Lit） ----
         GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
         plane.name = "BrushPlane";

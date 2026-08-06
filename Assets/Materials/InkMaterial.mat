@@ -11,7 +11,8 @@ Material:
   m_Shader: {fileID: 4800000, guid: 4c1efddaac93ae74597a3aa9c6b0ee0d, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
+  m_ValidKeywords:
+  - _MJ_HEIGHT_FOG
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -30,15 +31,15 @@ Material:
     m_Ints: []
     m_Floats:
     - _FeibaiThreshold: 0.7
-    - _FogBaseHeight: -3
+    - _FogBaseHeight: -2
     - _FogDensity: 1.2
-    - _FogDistFade: 60
-    - _FogHeightFalloff: 0.4
-    - _FogSkyBlend: 0.25
+    - _FogDistFade: 18
+    - _FogHeightFalloff: 0.5
+    - _FogSkyBlend: 0.2
     - _InkStainStrength: 0.6
     - _LineStrength: 1
     - _LineThickness: 1
     - _PaperStrength: 0.35
     m_Colors:
-    - _FogColor: {r: 0.62, g: 0.68, b: 0.72, a: 1}
+    - _FogColor: {r: 0.6643859, g: 0.6850232, b: 0.7056604, a: 1}
   m_BuildTextureStacks: []

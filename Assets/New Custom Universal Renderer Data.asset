@@ -82,7 +82,7 @@ MonoBehaviour:
     enabled: 1
     heightFog:
       enabled: 1
-      fogColor: {r: 0.52, g: 0.58, b: 0.64, a: 1}
+      fogColor: {r: 0.6643859, g: 0.6850232, b: 0.7056604, a: 1}
       baseHeight: -2
       density: 1.2
       heightFalloff: 0.5

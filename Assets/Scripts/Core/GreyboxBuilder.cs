@@ -3,7 +3,7 @@
 // 作用：一键代码化搭建灰盒场景，使【非程序员无需手动摆放任何物体】。
 //       构建内容：大地面 + 互锁连通箱庭（房间A → 窄门洞 → 房间B → 上坡 → 房间C 高台）
 //       + 房间A 放地面敌人、房间B 放空中敌人（浮空）、房间C 放 Boss 占位（红大方块）
-//       + 玩家（含 PlayerController）+ 主方向光 + 环境光 + 自动挂好 CameraRig / FpsProbe。
+//       + 玩家（含 PlayerCombatController，战斗 FSM）+ 主方向光 + 环境光 + 自动挂好 CameraRig / FpsProbe。
 // 使用：
 //   方式一（推荐）：Unity 菜单 -> Greybox/Rebuild Scene（菜单入口在 Scripts/Editor/GreyboxMenu.cs）。
 //   方式二（可选）：把本脚本拖到一个空物体上 -> 运行时若场景未构建则自动构建。
@@ -167,7 +167,7 @@ public class GreyboxBuilder : MonoBehaviour
         cc.height = 1.8f;
         cc.center = Vector3.zero;
 
-        p.AddComponent<PlayerController>();
+        p.AddComponent<PlayerCombatController>();
         SetColor(p, Color.yellow);
         return p;
     }
